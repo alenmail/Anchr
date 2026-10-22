@@ -86,7 +86,7 @@ export const UpdateInfoSchema = Schema.mutable(
 export type UpdateInfo = typeof UpdateInfoSchema.Type;
 
 /**
- * Whether BloxBot could start Roblox Studio's MCP helper. `not_installed` means the helper
+ * Whether Anchr can reach a connected Chrrxs Studio plugin through its bundled MCP server. `not_installed` means the helper
  * isn't on this computer, `unavailable` means it started but closed before it connected.
  */
 export const StudioMcpStatusSchema = Schema.Struct({

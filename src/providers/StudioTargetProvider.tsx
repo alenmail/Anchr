@@ -56,7 +56,7 @@ function discoveredPlaceIds(targets: readonly StudioTarget[]): string[] {
 }
 
 export function createStudioTargetPromptReference(target: StudioTarget): string {
-  return `Route every Roblox Studio MCP tool call for this request to studio_id ${JSON.stringify(target.key)}. The selected Studio is ${JSON.stringify(target.label)}${target.placeId ? ` with Place ID ${JSON.stringify(target.placeId)}` : ""}. Do not call set_active_studio; routing is stateless. Re-list Studios and stop if this studio_id is no longer connected.`;
+  return `Route every Anchr Studio tool call for this request using instance_id ${JSON.stringify(target.key)}. The selected Studio is ${JSON.stringify(target.label)}${target.placeId ? ` with Place ID ${JSON.stringify(target.placeId)}` : ""}. Use get_connected_instances to verify the instance is still connected. Chrrxs uses instance_id, never studio_id or set_active_studio.`;
 }
 
 export function StudioTargetProvider({ children }: { children: ReactNode }) {

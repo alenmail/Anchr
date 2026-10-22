@@ -200,13 +200,13 @@ export const EXPLORER_SNAPSHOT_OUTPUT_SCHEMA = {
 /**
  * The system prompt for writing an Explorer program. It names the tools the
  * runtime lets the program call, by Studio's own name: in its own session the
- * model sees them with OpenCode's server prefix (roblox-studio_search_game_tree).
+ * model sees them with OpenCode's server prefix (anchr-studio_get_project_structure).
  */
 export function explorerSystemPrompt(allowedTools: readonly string[]): string {
-  return `You generate the private TypeScript data provider for BloxBot's Explorer panel.
+  return `You generate the private TypeScript data provider for Anchr's Explorer panel.
 Write an import-free deterministic read-only TypeScript program and return it through the StructuredOutput tool. Do not call any Studio tool yourself: tool calls in this session are rejected. Read the tools' parameters from your own tool list instead.
 The source must define async function run({ input, callTool }), require input.studioId, and return an Explorer snapshot matching the requested output contract. It must never modify the place.
-The program may only call these tools, by exactly these names: ${allowedTools.join(", ")}. The runtime refuses any other tool. Use these names in callTool even though your own tool list shows them with a "${STUDIO_MCP_SERVER_NAME}_" prefix. Pass { studio_id: input.studioId } on every Studio-specific tool call.
+The program may only call these tools, by exactly these names: ${allowedTools.join(", ")}. The runtime refuses any other tool. Use these names in callTool even though your own tool list shows them with a "${STUDIO_MCP_SERVER_NAME}_" prefix. Pass { instance_id: input.studioId } on every Studio-specific tool call. The Chrrxs server exposes get_connected_instances and get_project_structure; do not use list_roblox_studios or search_game_tree.
 callTool resolves to a raw MCP CallToolResult ({ content, isError }). When isError is true, content holds Studio's error text; it does not throw. Tool output is usually JSON inside a text content part, sometimes after a note, so parse it defensively.
 The words import and export must not appear anywhere in the source, not even in comments or strings. Use only standard JavaScript globals; there is no network or file access.
 The value run returns must be JSON-safe and match this JSON Schema exactly, with no extra properties:
@@ -282,7 +282,7 @@ async function withPrivateSession<T>(
 ): Promise<T> {
   const created = await client.session.create(
     {
-      title: "BloxBot Explorer sync",
+      title: "Anchr Explorer sync",
       metadata: { bloxbotHidden: true, purpose: "explorer" },
       // Tools stay in the request, so StructuredOutput is available, but every
       // tool call is rejected and the session never waits on an approval.
@@ -357,7 +357,7 @@ export async function generateExplorerProgram<T>(
             error instanceof ExplorerModelError
               ? `Your reply did not contain the program: ${errorMessage(error)}
 Answer only by calling the StructuredOutput tool once with the complete program. Do not call any Studio tool yourself.`
-              : `BloxBot compiled and ran your program once, and it failed: ${errorMessage(error)}
+              : `Anchr compiled and ran your program once, and it failed: ${errorMessage(error)}
 Fix the cause and return the complete corrected program through the StructuredOutput tool. The program may call only these tools, by exactly these names: ${allowedTools.join(", ")}.`;
         }
       }

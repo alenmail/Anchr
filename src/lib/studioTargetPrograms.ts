@@ -37,11 +37,11 @@ const OUTPUT_SCHEMA = {
   },
 } as const;
 
-const SYSTEM_PROMPT = `You generate two deterministic, import-free TypeScript programs for BloxBot's Studio target picker.
-First inspect the Studio MCP capabilities available to you. Do not assume tool names, argument names, result shapes, or target identifiers.
+const SYSTEM_PROMPT = `You generate two deterministic, import-free TypeScript programs for Anchr's Studio target picker.
+Use the Anchr Studio plugin's Chrrxs MCP tools. First inspect the available Studio MCP capabilities. Do not assume tool names, argument names, result shapes, or target identifiers.
 Return envelopes for:
-1. discovery: contract name "studio-target-discovery", version "1", inputSchemaVersion "1", outputSchemaVersion "1". Its async function run({ input, callTool }) lists connected Roblox Studio sessions/places. Return { targets: [{ key, label, detail, placeId }], selectedKey: null }. Each key must be the exact Studio instance identifier accepted as studio_id by Studio tools. Include Place ID as a string when available, otherwise null. Labels/details are user-facing and detail may be null.
-2. selection: contract name "studio-target-selection", version "1", inputSchemaVersion "1", outputSchemaVersion "1". Its run receives input { targetKey } and statelessly verifies that exact Studio instance is still present by listing Studios again. Do not call set_active_studio or mutate server/session state. Return { selected: { key, label, detail, placeId }, verified: true }. Throw if the target is stale, disconnected, or ambiguous.
+1. discovery: contract name "studio-target-discovery", version "1", inputSchemaVersion "1", outputSchemaVersion "1". Its async function run({ input, callTool }) lists connected Roblox Studio sessions/places. Return { targets: [{ key, label, detail, placeId }], selectedKey: null }. Use get_connected_instances and its instances array. Each key must be the exact connected instance identifier accepted as instance_id by Chrrxs Studio tools. Include Place ID as a string when available, otherwise null. Labels/details are user-facing and detail may be null.
+2. selection: contract name "studio-target-selection", version "1", inputSchemaVersion "1", outputSchemaVersion "1". Its run receives input { targetKey } and statelessly verifies that exact Studio instance is still present by listing Studios again. Do not call set_active_studio; use get_connected_instances to confirm target presence without mutating any place or session. Return { selected: { key, label, detail, placeId }, verified: true }. Throw if the target is stale, disconnected, or ambiguous.
 Each source must define exactly async function run({ input, callTool }) and use only JSON-safe values plus callTool(name,args). No imports, exports, eval, global state, prose, markdown fences, or hardcoded place/session identifiers. Normalize MCP content defensively. Return only the requested structured output.`;
 
 interface StudioTargetModel {

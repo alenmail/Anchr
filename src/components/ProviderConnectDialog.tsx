@@ -591,8 +591,8 @@ function DeviceCodeStep({
     <div className="space-y-3">
       <p className="text-xs leading-relaxed text-muted-foreground">
         {host
-          ? `Enter this code on ${host} to approve BloxBot.`
-          : "Enter this code to approve BloxBot."}
+          ? `Enter this code on ${host} to approve Anchr.`
+          : "Enter this code to approve Anchr."}
       </p>
       <div className="flex items-center justify-between rounded-lg border bg-background px-3 py-2.5">
         <span className="select-all font-mono text-lg font-semibold tracking-[0.2em]">{code}</span>

@@ -400,7 +400,7 @@ function findCompatibleRelease(fetchFn: Fetch, archiveName: string) {
         const response = await fetchFn(`${OPEN_CODE_API}?per_page=${RELEASES_PER_PAGE}`, {
           headers: {
             Accept: "application/vnd.github+json",
-            "User-Agent": "BloxBot",
+            "User-Agent": "Anchr",
             "X-GitHub-Api-Version": "2022-11-28",
           },
           signal: AbortSignal.any([signal, AbortSignal.timeout(LOOKUP_TIMEOUT_MS)]),

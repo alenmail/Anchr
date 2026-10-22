@@ -1,6 +1,7 @@
 import { win32 } from "node:path";
 
 import { STUDIO_MCP_SERVER_NAME } from "../src/lib/bloxbotProgramManifest";
+import type { AppConfig } from "../src/types/desktop";
 
 export interface StudioMcpWindowsEnvironment {
   localAppData?: string;
@@ -42,12 +43,22 @@ export function studioMcpInstallPath(
   return null;
 }
 
-export function createOpenCodeConfig(broker: { url: string }) {
+export function anchrCompatibleProvider(endpoint: NonNullable<AppConfig["customEndpoint"]>) {
+  return {
+    npm: "@ai-sdk/openai-compatible",
+    name: "OpenAI-compatible",
+    options: { baseURL: endpoint.baseURL },
+    models: { [endpoint.modelId]: { name: endpoint.modelId, limit: { context: 32768, output: 8192 } } },
+  };
+}
+
+export function createOpenCodeConfig(broker: { url: string }, endpoint: AppConfig["customEndpoint"] = null) {
   return {
     // Keep OpenCode's standard automatic context compaction enabled for long sessions.
     compaction: {
       auto: true,
     },
+    provider: endpoint ? { "anchr-compatible": anchrCompatibleProvider(endpoint) } : {},
     mcp: {
       [STUDIO_MCP_SERVER_NAME]: {
         type: "remote",

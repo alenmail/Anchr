@@ -26,6 +26,7 @@ import { handleLastWindowClosed } from "./appLifecycle";
 import { createMainErrorReporter } from "./errorReporter";
 import { findInstructionFiles } from "./instructionFiles";
 import { channels } from "./channels";
+import { anchrCompatibleProvider } from "./opencodeConfig";
 import { makeOpenCodeLayer, OpenCode } from "./services/OpenCode";
 import {
   GeneratedProgramRuntime,
@@ -97,6 +98,7 @@ const openCodeRuntime = ManagedRuntime.make(
   Layer.merge(
     makeOpenCodeLayer({
       binaryCacheDirectory: openCodeBinaryDirectory,
+      userConfigPath: configPath(),
       workspace: join(app.getPath("home"), "Anchr"),
       onStartupProgress: (progress: OpenCodeStartupProgress) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -203,6 +205,22 @@ function patchConfig(input: unknown) {
         try {
           await writeFile(temporary, JSON.stringify(next, null, 2), { mode: 0o600 });
           await rename(temporary, destination);
+          // Keep the running OpenCode instance's provider catalog in sync with Settings.
+          // Credentials remain in OpenCode's auth store and are never written to Anchr settings.
+          if (Object.hasOwn(patch, "customEndpoint")) {
+            const path = join(app.getPath("home"), "Anchr", ".opencode", "config", "opencode", "opencode.json");
+            try {
+              const data = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
+              const providers = (data.provider ?? {}) as Record<string, unknown>;
+              if (next.customEndpoint) providers["anchr-compatible"] = anchrCompatibleProvider(next.customEndpoint);
+              else delete providers["anchr-compatible"];
+              data.provider = providers;
+              await writeFile(path + ".tmp", JSON.stringify(data, null, 2));
+              await rename(path + ".tmp", path);
+            } catch (error) {
+              console.warn("[Anchr] Provider settings saved; the AI engine may need a restart", error);
+            }
+          }
         } catch (cause) {
           await rm(temporary, { force: true }).catch(() => undefined);
           throw cause;

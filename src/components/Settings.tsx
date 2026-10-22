@@ -1,6 +1,5 @@
 import type { Model } from "@opencode-ai/sdk/v2/client";
 import { Search, Sparkles } from "lucide-react";
-import posthog from "posthog-js/dist/module.full.no-external.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import ProviderCheckPopover from "@/components/ProviderCheckPopover";
@@ -16,7 +15,7 @@ import {
   useConnectedProviders,
   useProviderList,
 } from "@/hooks/useProviders";
-import { analyticsDeviceId, analyticsProperties } from "@/lib/analytics";
+import { analyticsDeviceId } from "@/lib/analytics";
 import { desktop } from "@/lib/desktop";
 import { OPENCODE_GO, shouldRecommendOpenCodeGo } from "@/lib/opencodeGo";
 import { connectHint, isFreeTier, providerDisplayName } from "@/lib/providerAuth";

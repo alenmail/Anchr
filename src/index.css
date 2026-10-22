@@ -46,8 +46,8 @@
 /* ── Custom fonts ────────────────────────────────────────────────── */
 
 @theme inline {
-  --font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
-  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-sans: "Manrope", system-ui, -apple-system, sans-serif;
+  --font-serif: "Space Grotesk", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -655,7 +655,7 @@
 /* Base toast visual overrides (safe properties only) */
 [data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
   --toast-accent: oklch(0.553 0.013 58.071);
-  font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+  font-family: "Manrope", system-ui, -apple-system, sans-serif;
   background: var(--popover);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -715,7 +715,7 @@
 
 /* Toast action button */
 [data-sonner-toaster] [data-sonner-toast] [data-button] {
-  font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+  font-family: "Manrope", system-ui, -apple-system, sans-serif;
   font-weight: 500;
   font-size: 12.5px;
   padding: 5px 12px;
@@ -857,3 +857,20 @@
   --ring: #00c4f4; --sidebar: #0c121b; --sidebar-foreground: #e8f2ff; --sidebar-primary: #087aff;
   --sidebar-primary-foreground: #ffffff; --sidebar-accent: #152338; --sidebar-accent-foreground: #e8f2ff;
   --sidebar-border: #263342; }
+
+
+/* Anchr visual language: signal, precision, and unobtrusive tooling */
+.app-no-drag { -webkit-app-region: no-drag; }
+.font-display { font-family: "Space Grotesk", "Manrope", sans-serif; }
+.anchr-startup { background: radial-gradient(ellipse at 50% 42%, rgba(0,125,255,.11), transparent 45%), #070d16; }
+.anchr-startup-grid { position:absolute; inset:0; opacity:.2; pointer-events:none; background-image: linear-gradient(to right, rgba(65,146,255,.15) 1px,transparent 1px),linear-gradient(to bottom,rgba(65,146,255,.15) 1px,transparent 1px); background-size:48px 48px; mask-image:radial-gradient(circle at 50% 45%,black,transparent 63%); }
+.anchr-beacon { position:relative; display:grid; place-items:center; width:194px; height:194px; }
+.anchr-beacon-core { z-index:1; padding:8px; border:1px solid rgba(71,184,255,.23);border-radius:29px;background:#0a1625;box-shadow:0 0 48px rgba(0,144,255,.14); }
+.anchr-beacon-orbit { position:absolute; border:1px solid rgba(68,170,255,.2);border-radius:50%; }
+.anchr-beacon-orbit--outer { inset:0; border-style:dashed; animation:anchr-signal-spin 16s linear infinite; }
+.anchr-beacon-orbit--inner { inset:16px; border-color:rgba(0,196,244,.18); animation:anchr-signal-spin 13s linear reverse infinite; }
+.anchr-beacon-node { position:absolute;top:3px;left:50%;width:7px;height:7px;border-radius:50%;background:#00c7ef;box-shadow:0 0 15px #00c7ef; }
+.anchr-startup-progress-indeterminate { height:100%;width:34%;border-radius:999px;background:linear-gradient(90deg,#0a7cff,#00d2f3);animation:anchr-progress 1.7s ease-in-out infinite; }
+@keyframes anchr-signal-spin { to {transform:rotate(360deg)} }
+@keyframes anchr-progress { from{transform:translateX(-120%)}to{transform:translateX(390%)} }
+@media (prefers-reduced-motion: reduce) {.anchr-beacon-orbit,.anchr-startup-progress-indeterminate{animation:none}}

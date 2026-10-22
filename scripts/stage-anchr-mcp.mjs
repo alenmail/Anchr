@@ -47,11 +47,17 @@ for (const [variant, original] of [
     `buttonIcon${variant}: '${original}'`,
     `buttonIcon${variant}: '${toolbarIconId}'`);
 }
+// Use a typed function so roblox-ts does not reject a compile-time
+// comparison of literal placeholders (TS2367). Placeholders are substituted
+// only after the plugin has been compiled.
 for (const state of ["DISCONNECTED", "CONNECTING", "CONNECTED"]) {
   change("studio-plugin/src/server/index.server.ts",
     `const ICON_${state} = "rbxassetid://__BUTTON_ICON_${state}__";`,
-    `const ICON_${state} = "__BUTTON_ICON_${state}__" === "" ? "" : "rbxassetid://__BUTTON_ICON_${state}__";`);
+    `const ICON_${state} = getAnchrToolbarIcon("__BUTTON_ICON_${state}__");`);
 }
+change("studio-plugin/src/server/index.server.ts",
+  'const ICON_DISCONNECTED = getAnchrToolbarIcon("__BUTTON_ICON_DISCONNECTED__");',
+  'function getAnchrToolbarIcon(assetId: string): string { return assetId === "" ? "" : "rbxassetid://" + assetId; }\\nconst ICON_DISCONNECTED = getAnchrToolbarIcon("__BUTTON_ICON_DISCONNECTED__");');
 change("studio-plugin/src/server/index.server.ts",
   'toolbar.CreateButton("__BUTTON_TITLE__", "__BUTTON_TOOLTIP__", ICON_DISCONNECTED)',
   'toolbar.CreateButton("__BUTTON_TITLE__", "__BUTTON_TOOLTIP__", ICON_DISCONNECTED, "Anchr")');

@@ -1,0 +1,3 @@
+[submodule "vendor/robloxstudio-mcp"]
+	path = vendor/robloxstudio-mcp
+	url = https://github.com/Chrrxs/robloxstudio-mcp.git

@@ -11,7 +11,7 @@ const STUDIO_MCP_NAME = STUDIO_MCP_SERVER_NAME;
 
 export type StudioConnectionState = "checking" | "connected" | "waiting";
 
-/** Why Studio's MCP helper can't be reached, when BloxBot knows. */
+/** Why Studio's MCP helper can't be reached, when Anchr knows. */
 export type StudioMcpProblem = Extract<StudioMcpStatus["state"], "not_installed" | "unavailable">;
 
 export function studioMcpProblem(status: StudioMcpStatus | undefined): StudioMcpProblem | null {
@@ -22,6 +22,8 @@ export async function checkStudioConnection(
   client: Pick<OpencodeClient, "mcp">,
 ): Promise<Exclude<StudioConnectionState, "checking">> {
   try {
+    const bridge = await desktop.getStudioMcpStatus();
+    if (bridge.state !== "connected") return "waiting";
     const current = await client.mcp.status({});
     if (current.data?.[STUDIO_MCP_NAME]?.status === "connected") return "connected";
 

@@ -32,11 +32,11 @@ export interface StartupProgress {
 type UpdateCheckStatus = "idle" | "checking" | "available" | "downloading" | "up-to-date" | "error";
 
 /**
- * Full-screen loading state featuring the animated BloxBot face.
+ * Full-screen loading state featuring the animated Anchr face.
  * Used during server startup and SDK initialization.
  *
  * When `error` is true, shows a sad face with a "Check for Updates"
- * button and a link to the BloxBot website for support.
+ * button and a link to the Anchr website for support.
  */
 function LoadingScreen({
   message = "Starting up...",
@@ -100,66 +100,7 @@ function LoadingScreen({
         role={error ? "alert" : undefined}
         aria-live={error ? "assertive" : undefined}
       >
-        {/* BloxBot face  - inline SVG so we can animate individual parts */}
-        <svg
-          width="80"
-          height="80"
-          viewBox="0 0 512 512"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className={error ? "" : "bloxbot-face"}
-          aria-hidden="true"
-        >
-          {/* Body */}
-          <rect
-            x="32"
-            y="32"
-            width="448"
-            height="448"
-            rx="112"
-            fill="currentColor"
-            className="text-foreground"
-          />
-
-          {/* Left eye */}
-          <rect
-            className={error ? "" : "bloxbot-eye"}
-            x="144"
-            y="176"
-            width="72"
-            height="72"
-            rx="24"
-            fill="var(--background)"
-          />
-
-          {/* Right eye */}
-          <rect
-            className={error ? "" : "bloxbot-eye"}
-            x="296"
-            y="176"
-            width="72"
-            height="72"
-            rx="24"
-            fill="var(--background)"
-          />
-
-          {/* Smile (happy) or frown (error) */}
-          {error ? (
-            <path
-              d="M176 368C176 368 208 332 256 332C304 332 336 368 336 368"
-              stroke="var(--background)"
-              strokeWidth="32"
-              strokeLinecap="round"
-            />
-          ) : (
-            <path
-              d="M168 328C168 328 204.8 376 256 376C307.2 376 344 328 344 328"
-              stroke="var(--background)"
-              strokeWidth="32"
-              strokeLinecap="round"
-            />
-          )}
-        </svg>
+        <img src="/anchr-logo.svg" alt="Anchr" className="h-20 w-20 rounded-[22px] shadow-xl" />
 
         {/* Status text */}
         <h1 className="mt-5 text-base font-semibold text-foreground">{message}</h1>
@@ -292,7 +233,7 @@ function LoadingScreen({
               <span className="text-muted-foreground/40">|</span>
 
               <a
-                href="https://bloxbot.ai"
+                href="https://github.com/alenmail/Anchr"
                 target="_blank"
                 rel="noreferrer"
                 className="underline transition-colors hover:text-foreground"

@@ -28,10 +28,10 @@ if (import.meta.env.PROD && POSTHOG_PROJECT_TOKEN) {
     before_send: scrubAnalyticsEvent,
   });
   posthog.register({
-    $current_url: "bloxbot://app/loading",
+    $current_url: "anchr://app/loading",
     $host: "app",
     $pathname: "/loading",
-    app: "bloxbot",
+    app: "anchr",
     analytics_schema_version: ANALYTICS_SCHEMA_VERSION,
     analytics_detail_enabled: false,
     app_platform: navigator.platform,

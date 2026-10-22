@@ -18,11 +18,8 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { Context, Data, Effect, Layer, Schedule } from "effect";
 
 import type { StudioMcpStatus } from "../../src/types/desktop";
-import {
-  resolveStudioMcpHelper,
-  type StudioMcpHelper,
-  type StudioMcpHelperProbe,
-} from "../studioMcpHelper";
+import { resolveAnchrMcpHelper } from "../anchrMcpHelper";
+import type { StudioMcpHelper, StudioMcpHelperProbe } from "../studioMcpHelper";
 
 const LOOPBACK = "127.0.0.1";
 
@@ -99,7 +96,7 @@ export class StudioMcpBroker extends Context.Tag("@bloxbot/StudioMcpBroker")<
 
 class SdkStudioMcpUpstream implements StudioMcpUpstream {
   private readonly client = new Client(
-    { name: "BloxBot", version: "1.0.0" },
+    { name: "Anchr", version: "0.1.0" },
     { capabilities: {} },
   );
 
@@ -121,6 +118,7 @@ class SdkStudioMcpUpstream implements StudioMcpUpstream {
       args,
       cwd,
       stderr: "pipe",
+      env: { ...Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === "string")), ELECTRON_RUN_AS_NODE: "1" },
     });
     let stderrTail = "";
     transport.stderr?.on("data", (chunk: Buffer | string) => {
@@ -379,17 +377,17 @@ export function runStudioMcpStartup(
 }
 
 function summarizeToolResult(name: string, result: CallToolResult): string {
-  if (name !== "list_roblox_studios") return result.isError ? " error=true" : "";
+  if (name !== "get_connected_instances") return result.isError ? " error=true" : "";
   const text = result.content.find(
     (part): part is Extract<(typeof result.content)[number], { type: "text" }> =>
       part.type === "text",
   )?.text;
-  if (!text) return ` error=${result.isError === true} studios=unknown`;
+  if (!text) return ` error=${result.isError === true} instances=unknown`;
   try {
     const value = JSON.parse(text) as { studios?: unknown[] };
-    return ` error=${result.isError === true} studios=${Array.isArray(value.studios) ? value.studios.length : "unknown"}`;
+    return ` error=${result.isError === true} instances=${Array.isArray(value.instances) ? value.instances.length : "unknown"}`;
   } catch {
-    return ` error=${result.isError === true} studios=unparseable`;
+    return ` error=${result.isError === true} instances=unparseable`;
   }
 }
 
@@ -421,7 +419,7 @@ export async function startStudioMcpBroker(
   >();
   function makeSession() {
     const server = new Server(
-      { name: "bloxbot-studio-broker", version: "1.0.0" },
+      { name: "anchr-studio-broker", version: "0.1.0" },
       { capabilities: { tools: { listChanged: true } } },
     );
     server.setRequestHandler(ListToolsRequestSchema, () => upstream.listTools());
@@ -488,7 +486,17 @@ export async function startStudioMcpBroker(
       catch: (cause) =>
         new StudioMcpBrokerError({ message: "Studio MCP tool list failed", cause }),
     }),
-    status: Effect.sync(() => upstream.status?.() ?? { state: "connected" }),
+    status: Effect.promise(async () => {
+      const state: StudioMcpStatus = upstream.status?.() ?? { state: "connected" };
+      if (state.state !== "connected") return state;
+      try {
+        const result = await upstream.callTool("get_connected_instances", {});
+        if (result.isError) return { state: "unavailable" } as StudioMcpStatus;
+        const part = result.content.find((item) => item.type === "text");
+        const data = part?.type === "text" ? JSON.parse(part.text) : null;
+        return { state: Array.isArray(data?.instances) && data.instances.length > 0 ? "connected" : "unavailable" } as StudioMcpStatus;
+      } catch { return { state: "unavailable" } as StudioMcpStatus; }
+    }),
     close: async () => {
       for (const { server } of sessions.values()) await server.close();
       await new Promise<void>((resolve) => httpServer.close(() => resolve()));
@@ -511,24 +519,18 @@ export interface StudioMcpBrokerOptions {
 }
 
 export function makeStudioMcpBrokerLayer(options: StudioMcpBrokerOptions) {
-  const platform = options.platform ?? process.platform;
-  const environment = {
-    localAppData: options.localAppData,
-    comSpec: options.comSpec,
-    systemRoot: options.systemRoot,
-  };
   return Layer.scoped(
     StudioMcpBroker,
     Effect.gen(function* () {
       yield* Effect.tryPromise({
         try: () => mkdir(options.workspace, { recursive: true }),
         catch: (cause) =>
-          new StudioMcpBrokerError({ message: "Failed to create the BloxBot workspace", cause }),
+          new StudioMcpBrokerError({ message: "Failed to create the Anchr workspace", cause }),
       });
       // Found again on every attempt, so a Studio update between attempts is picked up.
       const connection = new StudioMcpConnection(async () =>
         SdkStudioMcpUpstream.connect(
-          await resolveStudioMcpHelper(platform, environment, options.helperProbe),
+          await resolveAnchrMcpHelper(),
           options.workspace,
         ),
       );

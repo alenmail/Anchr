@@ -40,12 +40,12 @@ const POPULAR_PROVIDERS = [
 /** OpenCode Zen with only the built-in free models. */
 const isFreeZen = isFreeTier;
 
-/** OpenCode Zen with a key added in BloxBot, which falls back to the free models when removed. */
+/** OpenCode Zen with a key added in Anchr, which falls back to the free models when removed. */
 function hasZenKey(provider: ProviderInfo): boolean {
   return provider.id === "opencode" && provider.source === "api";
 }
 
-/** OpenCode Zen with a key from the environment or config, which BloxBot can't remove. */
+/** OpenCode Zen with a key from the environment or config, which Anchr can't remove. */
 function hasOutsideZenKey(provider: ProviderInfo): boolean {
   return provider.id === "opencode" && !isFreeZen(provider) && !hasZenKey(provider);
 }
@@ -55,7 +55,7 @@ const TECHNOLOGIES = [
   {
     name: "Roblox Studio MCP",
     url: "https://create.roblox.com/docs/studio/mcp",
-    description: "Official Studio MCP server",
+    description: "Anchr Studio plugin and Chrrxs MCP server",
   },
 ];
 
@@ -302,7 +302,7 @@ function ProvidersTab() {
       } catch {
         result = {
           ok: false,
-          message: "BloxBot couldn't run the check. Try again.",
+          message: "Anchr couldn't run the check. Try again.",
           keyRejected: false,
           modelName: model.name,
         };
@@ -499,7 +499,7 @@ function ProvidersTab() {
                       </div>
                       {isFreeZen(provider) && (
                         <div className="truncate text-[11px] text-muted-foreground">
-                          Included with BloxBot
+                          Free OpenCode models
                         </div>
                       )}
                     </div>
@@ -525,7 +525,7 @@ function ProvidersTab() {
                       onOpenChange={(open) => setCheckPickerFor(open ? provider.id : null)}
                       onCheck={(model) => runCheck(provider, model)}
                     />
-                    {/* The free models can't be disconnected, and BloxBot can't
+                    {/* The free models can't be disconnected, and Anchr can't
                         remove a Zen key it didn't store. */}
                     {isFreeZen(provider) || hasOutsideZenKey(provider) ? null : (
                       <button
@@ -805,7 +805,7 @@ function AppearanceTab() {
     <div className="mx-auto w-full max-w-md px-4 py-6 @xl:px-6 @xl:py-8">
       <h4 className="font-serif text-lg italic text-foreground">Appearance</h4>
       <p className="mt-1 text-xs text-muted-foreground">
-        Choose how BloxBot looks. System follows your OS preference.
+        Choose how Anchr looks. System follows your OS preference.
       </p>
 
       <div className="mt-6">
@@ -874,7 +874,7 @@ function PrivacyTab() {
     <div className="mx-auto w-full max-w-md px-4 py-6 @xl:px-6 @xl:py-8">
       <h4 className="font-serif text-lg italic text-foreground">Privacy</h4>
       <p className="mt-1 text-xs text-muted-foreground">
-        BloxBot uses PostHog's standard product analytics with persistent device and session
+        Anchr uses PostHog's standard product analytics with persistent device and session
         identifiers, but events stay anonymous: no person profile is created. Error reports are
         included, with personal file paths, usernames, email addresses and API keys removed. They
         can name the provider and model an error came from. Attached images and files are never
@@ -917,8 +917,8 @@ function PrivacyTab() {
   );
 }
 
-const PRIVACY_POLICY_URL = "https://bloxbot.ai/privacy";
-const TERMS_URL = "https://bloxbot.ai/terms";
+const PRIVACY_POLICY_URL = "https://github.com/alenmail/Anchr/privacy";
+const TERMS_URL = "https://github.com/alenmail/Anchr/terms";
 
 function PrivacyDetails() {
   const deviceId = analyticsDeviceId();
@@ -1025,7 +1025,7 @@ function AboutTab({ appVersion }: { appVersion: string | null }) {
 
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6 @xl:px-6 @xl:py-8">
-      <h4 className="font-serif text-lg italic text-foreground">About BloxBot</h4>
+      <h4 className="font-serif text-lg italic text-foreground">About Anchr</h4>
       <p className="mt-1 text-xs text-muted-foreground">
         AI-assisted Roblox development, right from your desktop.
       </p>
@@ -1039,7 +1039,7 @@ function AboutTab({ appVersion }: { appVersion: string | null }) {
           <div className="flex items-center justify-between">
             <div>
               <span className="text-sm font-medium">
-                BloxBot{appVersion && <span className="font-mono"> v{appVersion}</span>}
+                Anchr{appVersion && <span className="font-mono"> v{appVersion}</span>}
               </span>
             </div>
             {updateStatus === "idle" && (
@@ -1182,7 +1182,7 @@ function AboutTab({ appVersion }: { appVersion: string | null }) {
           ))}
         </div>
         <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted-foreground">
-          BloxBot is powered by these projects. Thank you to the teams behind them.
+          Anchr is powered by these projects. Thank you to the teams behind them.
         </p>
       </div>
 
@@ -1193,7 +1193,7 @@ function AboutTab({ appVersion }: { appVersion: string | null }) {
         </div>
         <div className="space-y-1.5">
           <a
-            href="https://bloxbot.ai"
+            href="https://github.com/alenmail/Anchr"
             target="_blank"
             rel="noreferrer"
             className="flex h-9 w-full items-center gap-2 rounded-lg border bg-card px-3.5 text-xs transition-colors hover:bg-accent"

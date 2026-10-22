@@ -51,13 +51,12 @@ export const BLOXBOT_PROGRAM_NAMES = Object.keys(BLOXBOT_PROGRAM_CONTRACTS) as B
  */
 export const BLOXBOT_PROGRAM_TOOLS: Record<BloxBotProgramName, readonly string[]> = {
   "explorer-snapshot": [
-    "list_roblox_studios",
-    "get_studio_state",
-    "search_game_tree",
-    "inspect_instance",
+    "get_connected_instances",
+    "get_project_structure",
+    "get_place_info",
   ],
-  "studio-target-discovery": ["list_roblox_studios"],
-  "studio-target-selection": ["list_roblox_studios"],
+  "studio-target-discovery": ["get_connected_instances"],
+  "studio-target-selection": ["get_connected_instances"],
 };
 
 export const BloxBotProgramManifestSchema = Schema.Struct({
@@ -164,7 +163,7 @@ export function isBloxBotProgramToolAllowed(
  * Studio's tools as `roblox-studio_<tool>`, so a model-written program may use
  * that form.
  */
-export const STUDIO_MCP_SERVER_NAME = "roblox-studio";
+export const STUDIO_MCP_SERVER_NAME = "anchr-studio";
 
 const STUDIO_TOOL_PREFIX = `${STUDIO_MCP_SERVER_NAME}_`;
 

@@ -39,7 +39,7 @@ const defaultConfig: AppConfig = DEFAULT_APP_CONFIG;
 const configMutex = Effect.unsafeMakeSemaphore(1);
 
 function configPath(): string {
-  return join(app.getPath("userData"), "bloxbot-store.json");
+  return join(app.getPath("userData"), "anchr-store.json");
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -83,7 +83,7 @@ class DesktopMainError extends Data.TaggedError("DesktopMainError")<{
 }> {}
 
 const studioMcpBrokerLayer = makeStudioMcpBrokerLayer({
-  workspace: join(app.getPath("home"), "BloxBot"),
+  workspace: join(app.getPath("home"), "Anchr"),
   localAppData: process.env.LOCALAPPDATA,
   comSpec: process.env.ComSpec,
   systemRoot: process.env.SystemRoot,
@@ -97,7 +97,7 @@ const openCodeRuntime = ManagedRuntime.make(
   Layer.merge(
     makeOpenCodeLayer({
       binaryCacheDirectory: openCodeBinaryDirectory,
-      workspace: join(app.getPath("home"), "BloxBot"),
+      workspace: join(app.getPath("home"), "Anchr"),
       onStartupProgress: (progress: OpenCodeStartupProgress) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send(channels.openCodeStartupProgress, progress);
@@ -112,7 +112,8 @@ const openCodeRuntime = ManagedRuntime.make(
 // Roblox Studio MCP change can be fixed without an app release.
 const BLOXBOT_PROGRAMS_REFRESH_MS = 6 * 60 * 60 * 1000;
 const bloxbotProgramStore = createBloxBotProgramStore({
-  directory: join(app.getPath("userData"), "bloxbot-programs"),
+  directory: join(app.getPath("userData"), "anchr-programs"),
+  fetch: async () => new Response(null, { status: 404 }),
   log: (message) => console.log(message),
   onError: (error) => reportMainError("bloxbot_programs_refresh", error),
 });
@@ -245,9 +246,9 @@ const registerIpcHandlers = Effect.sync(() => {
   ipcMain.handle(channels.getVersion, () => runMain(Effect.sync(() => app.getVersion())));
   ipcMain.handle(channels.getInstructionFiles, () =>
     findInstructionFiles({
-      workspace: join(app.getPath("home"), "BloxBot"),
+      workspace: join(app.getPath("home"), "Anchr"),
       // OpenCode runs with XDG_CONFIG_HOME inside the workspace (see services/OpenCode.ts).
-      globalConfigDirectory: join(app.getPath("home"), "BloxBot", ".opencode", "config", "opencode"),
+      globalConfigDirectory: join(app.getPath("home"), "Anchr", ".opencode", "config", "opencode"),
       home: app.getPath("home"),
     }),
   );
@@ -312,39 +313,8 @@ const registerIpcHandlers = Effect.sync(() => {
       ),
     ),
   );
-  ipcMain.handle(channels.checkForUpdate, () =>
-    runMain(
-      Effect.gen(function* () {
-        if (!app.isPackaged) return null;
-        const result = yield* Effect.tryPromise({
-          try: () => autoUpdater.checkForUpdates(),
-          catch: (cause) =>
-            new DesktopMainError({ message: "Failed to check for updates", cause }),
-        });
-        if (!result) return null;
-        const body =
-          typeof result.updateInfo.releaseNotes === "string" ? result.updateInfo.releaseNotes : null;
-        return { version: result.updateInfo.version, body };
-      }),
-    ),
-  );
-  ipcMain.handle(channels.installUpdate, () =>
-    runMain(
-      Effect.gen(function* () {
-        if (!app.isPackaged) {
-          return yield* Effect.fail(
-            new DesktopMainError({ message: "Updates are only available in packaged builds" }),
-          );
-        }
-        yield* Effect.tryPromise({
-          try: () => autoUpdater.downloadUpdate(),
-          catch: (cause) =>
-            new DesktopMainError({ message: "Failed to download the update", cause }),
-        });
-        yield* Effect.sync(() => autoUpdater.quitAndInstall());
-      }),
-    ),
-  );
+  ipcMain.handle(channels.checkForUpdate, () => Promise.resolve(null));
+  ipcMain.handle(channels.installUpdate, () => Promise.reject(new Error("Anchr updates are not yet configured")));
   ipcMain.handle(
     channels.invokeExplorerProgram,
     (_event, input: unknown, studioIdInput: unknown) =>
@@ -396,7 +366,7 @@ function createWindow(): Effect.Effect<void, DesktopMainError> {
     const window = yield* Effect.try({
       try: () =>
         new BrowserWindow({
-          title: "BloxBot",
+          title: "Anchr",
           width: 920,
           height: 600,
           minWidth: 520,
@@ -417,7 +387,7 @@ function createWindow(): Effect.Effect<void, DesktopMainError> {
     yield* Effect.sync(() => {
       mainWindow = window;
       window.webContents.setUserAgent(
-        `${window.webContents.getUserAgent()} BloxBot/${app.getVersion()}`,
+        `${window.webContents.getUserAgent()} Anchr/${app.getVersion()}`,
       );
       window.webContents.setWindowOpenHandler(({ url }) => {
         Effect.runFork(

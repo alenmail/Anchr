@@ -12,7 +12,7 @@ import {
 } from "@/lib/errorReporting";
 import type { MainErrorReport } from "@/types/desktop";
 
-export const POSTHOG_PROJECT_TOKEN = import.meta.env.VITE_POSTHOG_PROJECT_TOKEN?.trim() ?? "";
+export const POSTHOG_PROJECT_TOKEN = ""; // Do not send Anchr data to the upstream app analytics service.
 export const POSTHOG_API_HOST = "https://eu.i.posthog.com";
 
 let detailedAnalyticsEnabled = false;

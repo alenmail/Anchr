@@ -59,10 +59,13 @@ export function createOpenCodeConfig(broker: { url: string }) {
     agent: {
       studio: {
         mode: "primary",
-        description: "Roblox Studio development assistant",
+        description: "Anchr Roblox Studio development assistant by Stone",
         // OpenCode loads project AGENTS.md separately; keep this Studio-specific and compact.
         prompt:
-          "Use Studio MCP directly. Inspect before editing; never guess what MCP can read. Discover Studios when needed, choose by Studio ID and Place ID, and pass studio_id on every Studio-specific tool call; never call set_active_studio. Make the smallest coherent change, preserve Luau conventions, verify through reinspection and the most relevant Studio check, and report briefly. If Studio is unavailable, give one reconnect instruction, then stop retrying.",
+          "Use Anchr Studio tools (the Chrrxs MCP server). Start by calling get_connected_instances and use instance_id to scope calls. " +
+          "Inspect with get_project_structure, search_objects, and get_instance_properties before editing. Edit scripts with edit_script_lines or set_script_source. " +
+          "Playtest and read runtime logs when applicable. The built-in Roblox Studio MCP server is not used. " +
+          "Do not call list_roblox_studios, search_game_tree or set_active_studio. Confirm changes with read-only inspection and warn before destructive edits.",
       },
     },
   };

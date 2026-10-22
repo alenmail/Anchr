@@ -1,29 +1,23 @@
 import { app } from "electron";
-import { access } from "node:fs/promises";
 import { join } from "node:path";
+import type { StudioMcpHelper } from "./studioMcpHelper";
 
-/**
- * Anchr uses the Chrrxs MCP server, NOT Roblox Studio's built-in StudioMCP helper.
- *
- * Development:
- *   pnpm --dir vendor/robloxstudio-mcp-source build
- *
- * Release builds must include the compiled server at
- *   resources/anchr-mcp/packages/robloxstudio-mcp/dist/index.js
- */
-export async function resolveAnchrMcpHelper(): Promise<{
-  command: string[];
-  installPath: string;
-  source: null;
-}> {
-  const base = app.isPackaged
-    ? join(process.resourcesPath, "anchr-mcp")
-    : join(process.cwd(), "vendor", "robloxstudio-mcp-source");
-  const entry = join(base, "packages", "robloxstudio-mcp", "dist", "index.js");
-  await access(entry);
+/** Anchr exclusively launches Chrrxs' bundled server, never StudioMCP.exe/mcp.bat. */
+export async function resolveAnchrMcpHelper(): Promise<StudioMcpHelper> {
+  const root = process.env.ANCHR_MCP_ROOT ??
+    (app.isPackaged
+      ? join(process.resourcesPath, "anchr-mcp")
+      : join(process.cwd(), "vendor", "anchr-mcp"));
+  const dir = join(root, "node_modules", "@chrrxs", "robloxstudio-mcp");
   return {
-    command: [process.execPath, entry, "--auto-install-plugin"],
-    installPath: entry,
+    command: [
+      process.execPath,
+      join(dir, "dist", "index.js"),
+      "--auto-install-plugin",
+      "--plugin-path",
+      join(dir, "studio-plugin", "MCPPlugin.rbxmx"),
+    ],
+    installPath: join(dir, "dist", "index.js"),
     source: null,
   };
 }

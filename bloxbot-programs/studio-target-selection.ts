@@ -1,20 +1,18 @@
 async function run({ input, callTool }: { input: any; callTool: (name: string, args: Record<string, unknown>) => Promise<unknown> }) {
   const targetKey = typeof input?.targetKey === "string" ? input.targetKey : "";
-  if (!targetKey) throw new Error("A Studio target is required");
-  const data = normalizeMcpResult(await callTool("list_roblox_studios", {})) ?? {};
-  const studios = Array.isArray(data) ? data : Array.isArray(data.studios) ? data.studios : [];
-  const selected = studios.find((studio: any) => {
-    const rawStudioId = studio?.studio_id ?? studio?.studioId ?? studio?.id;
-    return normalizeMcpIdentifier(rawStudioId) === targetKey;
-  });
-  if (!selected) throw new Error("Studio target could not be verified");
-  const rawPlaceId = selected?.place_id ?? selected?.placeId;
-  const placeId = normalizeMcpIdentifier(rawPlaceId);
-  const rawLabel = selected?.name ?? selected?.place_name ?? selected?.placeName;
+  if (!targetKey) throw new Error("Choose a connected Studio instance");
+  const result = await callTool("get_connected_instances", {});
+  const error = mcpErrorText(result);
+  if (error) throw new Error(error);
+  const data = normalizeMcpResult(result) ?? {};
+  const instances = Array.isArray(data.instances) ? data.instances : [];
+  const selected = instances.find((row: any) => normalizeMcpIdentifier(row?.id) === targetKey);
+  if (!selected) throw new Error("Anchr could not verify this Studio instance");
+  const placeId = normalizeMcpIdentifier(selected.placeId);
   return {
     selected: {
       key: targetKey,
-      label: typeof rawLabel === "string" && rawLabel ? rawLabel : targetKey,
+      label: typeof selected.placeName === "string" && selected.placeName ? selected.placeName : targetKey,
       detail: placeId ? "Place " + placeId : "Local place",
       placeId,
     },

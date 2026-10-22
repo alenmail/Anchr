@@ -847,3 +847,13 @@
 [data-sonner-toaster] [data-sonner-toast].analytics-consent-toast [data-close-button] {
   display: none;
 }
+
+/* Anchr by Stone • graphite, cyan and electric blue brand system */
+:root { --primary: #087aff; --primary-foreground: #fff; --ring: #00bff4; --sidebar-primary: #087aff; }
+.dark { --background: #070b11; --foreground: #f6f9ff; --card: #101720; --card-foreground: #f6f9ff;
+  --popover: #111a26; --popover-foreground: #f6f9ff; --secondary: #192431; --secondary-foreground: #dbefff;
+  --muted: #192431; --muted-foreground: #96a8ba; --accent: #122c46; --accent-foreground: #dcefff;
+  --border: #283647; --input: #283647; --primary: #087aff; --primary-foreground: #ffffff;
+  --ring: #00c4f4; --sidebar: #0c121b; --sidebar-foreground: #e8f2ff; --sidebar-primary: #087aff;
+  --sidebar-primary-foreground: #ffffff; --sidebar-accent: #152338; --sidebar-accent-foreground: #e8f2ff;
+  --sidebar-border: #263342; }

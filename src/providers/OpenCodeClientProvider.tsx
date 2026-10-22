@@ -136,7 +136,7 @@ export function getStartupErrorPresentation(
     return {
       message: "Setup couldn't finish",
       detail:
-        "Windows security software blocked OpenCode, the engine BloxBot runs on. Allow BloxBot in your antivirus, or add its folder as an exclusion, then retry.",
+        "Windows security software blocked OpenCode, the engine Anchr runs on. Allow Anchr in your antivirus, or add its folder as an exclusion, then retry.",
       detailPath: installFolder ?? undefined,
       technicalDetail,
     };
@@ -154,7 +154,7 @@ export function getStartupErrorPresentation(
     return {
       message: "Setup couldn't finish",
       detail:
-        "BloxBot couldn't set up OpenCode, the engine it runs on. Restart setup, and if it keeps failing, copy the technical details and send them to us.",
+        "Anchr couldn't set up OpenCode, the engine it runs on. Restart setup, and if it keeps failing, copy the technical details and send them to us.",
       technicalDetail,
     };
   }
@@ -167,7 +167,7 @@ export function getStartupErrorPresentation(
     return {
       message: "Setup couldn't finish",
       detail:
-        "BloxBot couldn't download its setup files. Check your internet connection, VPN, or firewall, then restart setup.",
+        "Anchr couldn't download its setup files. Check your internet connection, VPN, or firewall, then restart setup.",
       technicalDetail,
     };
   }
@@ -176,7 +176,7 @@ export function getStartupErrorPresentation(
     return {
       message: "This computer isn't supported yet",
       detail:
-        "BloxBot couldn't find a compatible setup package for this system. Check for an app update or contact support.",
+        "Anchr couldn't find a compatible setup package for this system. Check for an app update or contact support.",
       technicalDetail,
     };
   }
@@ -184,7 +184,7 @@ export function getStartupErrorPresentation(
   return {
     message: "Setup couldn't finish",
     detail:
-      "BloxBot hit a problem while preparing its local engine. Restart setup, or check for an app update if it happens again.",
+      "Anchr hit a problem while preparing its local engine. Restart setup, or check for an app update if it happens again.",
     technicalDetail,
   };
 }

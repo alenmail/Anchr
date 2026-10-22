@@ -36,9 +36,9 @@ export type AppConfig = typeof AppConfigSchema.Type;
 export const DEFAULT_APP_CONFIG: AppConfig = {
   lastModel: null,
   hiddenModels: [],
-  theme: "system",
-  detailedAnalytics: "unset",
-  analyticsNoticeVersion: 0,
+  theme: "dark",
+  detailedAnalytics: "disabled",
+  analyticsNoticeVersion: 2,
   studioTargetPrograms: null,
   studioTargetsBySession: {},
 };

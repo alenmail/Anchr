@@ -384,7 +384,7 @@ function summarizeToolResult(name: string, result: CallToolResult): string {
   )?.text;
   if (!text) return ` error=${result.isError === true} instances=unknown`;
   try {
-    const value = JSON.parse(text) as { studios?: unknown[] };
+    const value = JSON.parse(text) as { instances?: unknown[] };
     return ` error=${result.isError === true} instances=${Array.isArray(value.instances) ? value.instances.length : "unknown"}`;
   } catch {
     return ` error=${result.isError === true} instances=unparseable`;

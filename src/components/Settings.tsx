@@ -3,6 +3,7 @@ import { Search, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import ProviderCheckPopover from "@/components/ProviderCheckPopover";
+import CompatibleProviderPanel from "@/components/CompatibleProviderPanel";
 import ProviderConnectDialog from "@/components/ProviderConnectDialog";
 import ProviderLogo from "@/components/ProviderLogo";
 import { THEME_OPTIONS, type Theme, useTheme } from "@/components/theme-provider";
@@ -17,7 +18,6 @@ import {
 } from "@/hooks/useProviders";
 import { analyticsDeviceId } from "@/lib/analytics";
 import { desktop } from "@/lib/desktop";
-import { OPENCODE_GO, shouldRecommendOpenCodeGo } from "@/lib/opencodeGo";
 import { connectHint, isFreeTier, providerDisplayName } from "@/lib/providerAuth";
 import { checkModels, checkPreference, type ProviderCheckResult } from "@/lib/providerCheck";
 import { usePreferences } from "@/providers/PreferencesProvider";
@@ -26,8 +26,7 @@ import type { UpdateInfo } from "@/types/desktop";
 
 // ── Popular providers (same order as OpenCode's web UI) ──────────────
 const POPULAR_PROVIDERS = [
-  "opencode",
-  "opencode-go",
+  "anchr-compatible",
   "anthropic",
   "github-copilot",
   "openai",
@@ -54,7 +53,7 @@ const TECHNOLOGIES = [
   {
     name: "Roblox Studio MCP",
     url: "https://create.roblox.com/docs/studio/mcp",
-    description: "Anchr Studio plugin and Chrrxs MCP server",
+    description: "Inspect places, edit scripts and run playtests",
   },
 ];
 
@@ -331,7 +330,7 @@ function ProvidersTab() {
       forgetCheck(provider.id);
       toast.success(
         hasZenKey(provider)
-          ? "OpenCode Zen key removed. The free models are still available."
+          ? "OpenCode Zen key removed."
           : "Provider disconnected",
       );
     } catch {
@@ -352,21 +351,6 @@ function ProvidersTab() {
     (p) => connectedProviders.includes(p.id) && matches(p, providerDisplayName(p)),
   );
 
-  const goProvider = allProviders.find((p) => p.id === OPENCODE_GO.providerId);
-  const recommendGo =
-    !!goProvider &&
-    !needle &&
-    shouldRecommendOpenCodeGo(allProviders.filter((p) => connectedProviders.includes(p.id)));
-
-  function setUpGo(source: "recommendation" | "list") {
-    if (!goProvider) return;
-    posthog.capture(
-      "provider_recommendation_clicked",
-      analyticsProperties("providers", { provider: OPENCODE_GO.providerId, source }),
-    );
-    setConnecting(goProvider);
-  }
-
   // Popular first in OpenCode's order, then everything else alphabetically
   const { popular, others } = useMemo(() => {
     const pop: ProviderInfo[] = [];
@@ -376,7 +360,7 @@ function ProvidersTab() {
       // provider: a key turns the same OpenCode provider into a Zen account.
       if ((connectedProviders.includes(p.id) && !isFreeZen(p)) || !matches(p)) continue;
       // The recommendation card already offers Go.
-      if (recommendGo && p.id === OPENCODE_GO.providerId) continue;
+      if (p.id === "opencode" || p.id === "opencode-go") continue;
       if (POPULAR_PROVIDERS.includes(p.id)) {
         pop.push(p);
       } else {
@@ -386,7 +370,7 @@ function ProvidersTab() {
     pop.sort((a, b) => POPULAR_PROVIDERS.indexOf(a.id) - POPULAR_PROVIDERS.indexOf(b.id));
     oth.sort((a, b) => a.name.localeCompare(b.name));
     return { popular: pop, others: oth };
-  }, [allProviders, connectedProviders, matches, recommendGo]);
+  }, [allProviders, connectedProviders, matches]);
 
   const nothingMatches =
     allProviders.length > 0 && connected.length + popular.length + others.length === 0;
@@ -402,9 +386,7 @@ function ProvidersTab() {
           </div>
         </div>
         <button
-          onClick={() =>
-            provider.id === OPENCODE_GO.providerId ? setUpGo("list") : setConnecting(provider)
-          }
+          onClick={() => setConnecting(provider)}
           className="shrink-0 whitespace-nowrap rounded-md border bg-background px-3 py-1 text-[11px] font-medium transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           Connect
@@ -417,8 +399,10 @@ function ProvidersTab() {
     <div className="mx-auto w-full max-w-md px-4 py-6 @xl:px-6 @xl:py-8">
       <h4 className="font-serif text-lg italic text-foreground">Providers</h4>
       <p className="mt-1 text-xs text-muted-foreground">
-        Connect an AI provider to chat with its models.
+        Choose an AI engine for scripting, debugging and Studio automation.
       </p>
+
+      <CompatibleProviderPanel />
 
       {allProviders.length > 0 && (
         <div className="relative mt-5">
@@ -431,42 +415,6 @@ function ProvidersTab() {
             aria-label="Search providers"
             className="h-8 w-full rounded-md border bg-background pr-2 pl-8 text-xs placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
           />
-        </div>
-      )}
-
-      {recommendGo && (
-        <div className="mt-6 rounded-lg border bg-card p-4">
-          <div className="flex items-start gap-3">
-            <ProviderLogo
-              providerId={OPENCODE_GO.providerId}
-              name="OpenCode Go"
-              className="hidden @md:flex"
-            />
-            <div className="min-w-0">
-              <div className="text-sm font-medium">Want more than the free models?</div>
-              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                OpenCode Go is a low-cost subscription to strong open coding models like Kimi, GLM,
-                Qwen and DeepSeek. Go is {OPENCODE_GO.goPrice}, and Go Plus is{" "}
-                {OPENCODE_GO.goPlusPrice} with higher limits.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-                <button
-                  onClick={() => setUpGo("recommendation")}
-                  className="whitespace-nowrap rounded-md bg-foreground px-3 py-1.5 text-[11px] font-medium text-background transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  Set up OpenCode Go
-                </button>
-                <button
-                  onClick={() => {
-                    desktop.openUrl(OPENCODE_GO.plansUrl).catch(() => {});
-                  }}
-                  className="whitespace-nowrap text-[11px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
-                >
-                  Compare plans
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
@@ -681,7 +629,7 @@ function ModelsTab() {
     <div className="mx-auto w-full max-w-md px-4 py-6 @xl:px-6 @xl:py-8">
       <h4 className="font-serif text-lg italic text-foreground">Models</h4>
       <p className="mt-1 text-xs text-muted-foreground">
-        Toggle which models appear in the model selector.
+        Keep only the models you actually use. Built-in free-model suggestions are hidden.
       </p>
 
       {/* Search */}
@@ -1156,7 +1104,7 @@ function AboutTab({ appVersion }: { appVersion: string | null }) {
           ))}
         </div>
         <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted-foreground">
-          Anchr by Stone incorporates MIT-licensed BloxBot and Chrrxs Studio MCP. Their original contributors retain attribution.
+          Built for scripting, debugging, inspecting and playtesting. Open-source licenses are available in the repository.
         </p>
       </div>
 

@@ -895,8 +895,6 @@ function PrivacyDetails() {
 // About Tab
 // ═══════════════════════════════════════════════════════════════════════
 
-type UpdateCheckStatus = "idle" | "checking" | "available" | "downloading" | "up-to-date" | "error";
-
 function AboutTab({ appVersion }: { appVersion: string | null }) {
   const queryClient = useQueryClient();
   const features = [

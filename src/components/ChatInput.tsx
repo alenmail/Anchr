@@ -443,7 +443,7 @@ function ChatInput() {
 
   const modelsByProvider = useMemo(() => {
     const POPULAR = [
-      "opencode",
+      "anchr-compatible",
       "anthropic",
       "github-copilot",
       "openai",

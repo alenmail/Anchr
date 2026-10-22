@@ -1633,13 +1633,14 @@ function ChatMessages() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-6">
         <ImageLightbox />
-        <div className="animate-fade-in-up text-center">
-          <h2 className="font-serif text-2xl italic text-foreground">
-            What would you like to build?
-          </h2>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Ask me to create scripts, design game mechanics, or modify your Roblox Studio project.
-          </p>
+        <div className="animate-fade-in-up mx-auto max-w-[390px] text-center">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-sky-500/25 bg-sky-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[.18em] text-sky-300">Your studio, connected</div>
+          <h2 className="font-display text-[27px] font-semibold tracking-tight text-foreground">Make an idea playable.</h2>
+          <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">Build mechanics, inspect your world, fix scripts and run tests — without leaving Roblox Studio.</p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2 text-[10px] text-slate-400">
+            {["Script editing", "Explorer tools", "Runtime debugging", "Playtesting"].map((name) =>
+              <span key={name} className="rounded-lg border border-white/10 bg-white/[.035] px-2.5 py-1.5">{name}</span>)}
+          </div>
         </div>
       </div>
     );

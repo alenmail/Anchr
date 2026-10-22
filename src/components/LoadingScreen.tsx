@@ -1,372 +1,67 @@
-import { useRef, useState } from "react";
-
-import { desktop } from "@/lib/desktop";
-import type { UpdateInfo } from "@/types/desktop";
-
-interface LoadingScreenProps {
-  message?: string;
-  detail?: string;
-  /** A folder path shown under the detail, selectable so it can be copied. */
-  detailPath?: string;
-  /** Full diagnostic text, hidden behind a disclosure in the error state. */
-  technicalDetail?: string;
-  animation?: StartupAnimation;
-  startup?: StartupProgress;
-  /** When true, shows the error state with help actions instead of the dot loader. */
-  error?: boolean;
-  /** Called when the user clicks "Try Again". */
-  onRetry?: () => void;
-  /** When true, shows a spinner on the retry button. */
-  retrying?: boolean;
-}
+import { useState } from "react";
+import { RefreshCw, Copy, CircleHelp } from "lucide-react";
+import logo from "@/assets/anchr-logo.webp";
 
 export type StartupAnimation = "sparkles" | "dots" | "blocks";
-
 export interface StartupProgress {
   step: 1 | 2 | 3;
   label: string;
   progress?: number;
   meta?: string;
 }
-
-type UpdateCheckStatus = "idle" | "checking" | "available" | "downloading" | "up-to-date" | "error";
-
-/**
- * Full-screen loading state featuring the animated Anchr face.
- * Used during server startup and SDK initialization.
- *
- * When `error` is true, shows a sad face with a "Check for Updates"
- * button and a link to the Anchr website for support.
- */
-function LoadingScreen({
-  message = "Starting up...",
+interface LoadingScreenProps {
+  message?: string;
+  detail?: string;
+  detailPath?: string;
+  technicalDetail?: string;
+  animation?: StartupAnimation;
+  startup?: StartupProgress;
+  error?: boolean;
+  onRetry?: () => void;
+  retrying?: boolean;
+}
+export default function LoadingScreen({
+  message = "Initializing your workspace",
   detail,
   detailPath,
   technicalDetail,
-  animation,
   startup,
   error,
   onRetry,
   retrying,
 }: LoadingScreenProps) {
-  const [updateStatus, setUpdateStatus] = useState<UpdateCheckStatus>("idle");
-  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
-  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
-  const updateRef = useRef<UpdateInfo | null>(null);
-
-  async function handleCheckForUpdates() {
-    setUpdateStatus("checking");
-    try {
-      const update = await desktop.checkForUpdate();
-      if (!update) {
-        setUpdateStatus("up-to-date");
-        return;
-      }
-      updateRef.current = update;
-      setUpdateVersion(update.version);
-      setUpdateStatus("available");
-    } catch (err) {
-      console.error("[loading] Failed to check for updates:", err);
-      setUpdateStatus("error");
-    }
-  }
-
-  async function handleInstall() {
-    const update = updateRef.current;
-    if (!update) return;
-    try {
-      setUpdateStatus("downloading");
-      await desktop.installUpdate();
-    } catch (err) {
-      console.error("[loading] Failed to install update:", err);
-      setUpdateStatus("error");
-    }
-  }
-
-  async function handleCopyDetails() {
-    if (!technicalDetail) return;
-    try {
-      await navigator.clipboard.writeText(technicalDetail);
-      setCopyStatus("copied");
-    } catch {
-      setCopyStatus("error");
-    }
-  }
-
+  const [copied, setCopied] = useState(false);
+  const progress = startup?.progress === undefined ? null : Math.round(Math.max(0, Math.min(1, startup.progress)) * 100);
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center overflow-y-auto px-6 py-10">
-      <div
-        className="animate-fade-in flex w-full max-w-sm flex-col items-center"
-        role={error ? "alert" : undefined}
-        aria-live={error ? "assertive" : undefined}
-      >
-        <img src="/anchr-logo.svg" alt="Anchr" className="h-20 w-20 rounded-[22px] shadow-xl" />
-
-        {/* Status text */}
-        <h1 className="mt-5 text-base font-semibold text-foreground">{message}</h1>
-
-        {detail && (
-          <p className="mt-2 max-w-sm text-center text-xs leading-relaxed text-muted-foreground">
-            {detail}
-          </p>
-        )}
-
-        {detailPath && (
-          <code className="mt-2 max-w-sm select-all break-all rounded-md border bg-card px-2 py-1 text-center font-mono text-xs text-foreground">
-            {detailPath}
-          </code>
-        )}
-
-        {/* Error state: help actions */}
+    <div className="anchr-startup relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-10" role={error ? "alert" : "status"}>
+      <div className="anchr-startup-grid" aria-hidden="true" />
+      <div className="relative flex w-full max-w-sm flex-col items-center text-center">
+        <span className="mb-8 text-[10px] font-semibold uppercase tracking-[.38em] text-sky-300/70">Anchr / Studio</span>
+        <div className="anchr-beacon" aria-hidden="true">
+          <div className="anchr-beacon-orbit anchr-beacon-orbit--outer" />
+          <div className="anchr-beacon-orbit anchr-beacon-orbit--inner" />
+          <div className="anchr-beacon-core"><img src={logo} alt="" className="h-20 w-20 rounded-[21px]" /></div>
+          <span className="anchr-beacon-node" />
+        </div>
+        <h1 className="mt-9 font-display text-2xl font-semibold tracking-tight text-foreground">{error ? "Connection interrupted" : message}</h1>
+        <p className="mt-2 max-w-xs text-[12px] leading-relaxed text-muted-foreground">{detail ?? (error ? "The local engine could not start. Check the details below." : "Preparing the tools that connect your ideas to Studio.")}</p>
+        {detailPath && <code className="mt-3 max-w-full select-all break-all rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px]">{detailPath}</code>}
         {error ? (
-          <div className="mt-5 flex flex-col items-center gap-3">
-            {/* Retry button */}
-            {onRetry && (
-              <button
-                type="button"
-                onClick={onRetry}
-                disabled={retrying}
-                className="inline-flex h-9 items-center gap-2 rounded-lg bg-foreground px-5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-60"
-              >
-                {retrying ? (
-                  <>
-                    <svg
-                      className="h-3.5 w-3.5 animate-spin"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
-                    </svg>
-                    Restarting...
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      width="13"
-                      height="13"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M21 2v6h-6" />
-                      <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-                      <path d="M3 22v-6h6" />
-                      <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-                    </svg>
-                    Restart setup
-                  </>
-                )}
-              </button>
-            )}
-
-            {/* Secondary actions  - text links only */}
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              {updateStatus === "idle" && (
-                <button
-                  type="button"
-                  onClick={handleCheckForUpdates}
-                  className="underline transition-colors hover:text-foreground"
-                >
-                  Check for updates
-                </button>
-              )}
-
-              {updateStatus === "checking" && (
-                <span className="flex items-center gap-1.5">
-                  <svg
-                    className="h-3 w-3 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
-                  </svg>
-                  Checking...
-                </span>
-              )}
-
-              {updateStatus === "up-to-date" && (
-                <span className="text-emerald-600">Up to date</span>
-              )}
-
-              {updateStatus === "available" && updateVersion && (
-                <button
-                  type="button"
-                  onClick={handleInstall}
-                  className="underline transition-colors hover:text-foreground"
-                >
-                  Install v{updateVersion} &amp; restart
-                </button>
-              )}
-
-              {updateStatus === "downloading" && (
-                <span className="flex items-center gap-1.5">
-                  <svg
-                    className="h-3 w-3 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
-                  </svg>
-                  Installing...
-                </span>
-              )}
-
-              {updateStatus === "error" && (
-                <button
-                  type="button"
-                  onClick={handleCheckForUpdates}
-                  className="underline transition-colors hover:text-foreground"
-                >
-                  Retry update check
-                </button>
-              )}
-
-              <span className="text-muted-foreground/40">|</span>
-
-              <a
-                href="https://github.com/alenmail/Anchr"
-                target="_blank"
-                rel="noreferrer"
-                className="underline transition-colors hover:text-foreground"
-              >
-                Get help
-              </a>
-            </div>
-
-            {technicalDetail && (
-              <details className="mt-1 w-full max-w-sm rounded-lg border bg-card text-left text-xs text-muted-foreground">
-                <summary className="cursor-pointer select-none px-3 py-2.5 font-medium text-foreground/75 transition-colors hover:text-foreground">
-                  Technical details
-                </summary>
-                <div className="border-t px-3 py-3">
-                  <p className="leading-relaxed">
-                    Share these details if support asks for them. They may include local file paths.
-                  </p>
-                  <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-2 font-mono text-[10px] leading-relaxed text-foreground/70">
-                    {technicalDetail}
-                  </pre>
-                  <button
-                    type="button"
-                    onClick={handleCopyDetails}
-                    className="mt-2 font-medium text-foreground/70 underline transition-colors hover:text-foreground"
-                  >
-                    {copyStatus === "copied"
-                      ? "Copied"
-                      : copyStatus === "error"
-                        ? "Couldn't copy"
-                        : "Copy details"}
-                  </button>
-                </div>
-              </details>
-            )}
+          <div className="mt-7 flex w-full flex-col items-center gap-3">
+            {onRetry && <button type="button" onClick={onRetry} disabled={retrying} className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-50"><RefreshCw size={14} className={retrying ? "animate-spin" : ""} />Retry connection</button>}
+            {technicalDetail && <details className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-left text-xs"><summary className="cursor-pointer">Technical details</summary><pre className="mt-3 max-h-32 overflow-auto whitespace-pre-wrap break-all text-[10px] text-muted-foreground">{technicalDetail}</pre><button type="button" onClick={async () => { await navigator.clipboard.writeText(technicalDetail); setCopied(true); }} className="mt-2 inline-flex items-center gap-1 text-sky-300"><Copy size={12} />{copied ? "Copied" : "Copy details"}</button></details>}
+            <a href="https://github.com/alenmail/Anchr/issues" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:underline"><CircleHelp size={12} /> Report an issue</a>
           </div>
-        ) : startup ? (
-          <StartupProgressGraphic startup={startup} />
-        ) : animation ? (
-          <StartupAnimationGraphic animation={animation} />
         ) : (
-          <div className="mt-4 flex gap-1">
-            <span className="bloxbot-dot h-1 w-1 rounded-full bg-foreground/25" />
-            <span className="bloxbot-dot h-1 w-1 rounded-full bg-foreground/25 [animation-delay:150ms]" />
-            <span className="bloxbot-dot h-1 w-1 rounded-full bg-foreground/25 [animation-delay:300ms]" />
+          <div className="mt-8 w-full max-w-[260px]">
+            <div className="mb-2 flex justify-between text-[10px] uppercase tracking-[.13em] text-slate-400">
+              <span>{startup?.label ?? "Starting engine"}</span><span>{startup ? `${startup.step}/3` : "ACTIVE"}</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-slate-800"><div className={progress === null ? "anchr-startup-progress-indeterminate" : "h-full rounded-full bg-sky-400 transition-all"} style={progress === null ? undefined : { width: `${progress}%` }} /></div>
+            {startup?.meta && <div className="mt-2 text-right font-mono text-[10px] text-muted-foreground">{startup.meta}</div>}
           </div>
         )}
       </div>
     </div>
   );
 }
-
-function StartupProgressGraphic({ startup }: { startup: StartupProgress }) {
-  const currentIndex = startup.step - 1;
-  const currentProgress =
-    startup.progress === undefined ? undefined : Math.min(1, Math.max(0, startup.progress));
-
-  return (
-    <div className="mt-5 w-full max-w-[17rem]">
-      <div
-        className="grid grid-cols-3 gap-1.5"
-        role="progressbar"
-        aria-label={`${startup.label}, step ${startup.step} of 3`}
-        aria-valuemin={currentProgress === undefined ? undefined : 0}
-        aria-valuemax={currentProgress === undefined ? undefined : 100}
-        aria-valuenow={
-          currentProgress === undefined ? undefined : Math.round(currentProgress * 100)
-        }
-      >
-        {[0, 1, 2].map((index) => {
-          const complete = index < currentIndex;
-          const current = index === currentIndex;
-          const fill = complete ? 1 : current ? currentProgress : 0;
-
-          return (
-            <span
-              key={index}
-              className="h-1.5 overflow-hidden rounded-full bg-foreground/10"
-              aria-hidden="true"
-            >
-              {current && fill === undefined ? (
-                <span className="startup-progress-indeterminate block h-full rounded-full bg-foreground/65" />
-              ) : (
-                <span
-                  className="block h-full origin-left rounded-full bg-foreground/65 transition-transform duration-300 ease-out"
-                  style={{ transform: `scaleX(${fill ?? 0})` }}
-                />
-              )}
-            </span>
-          );
-        })}
-      </div>
-      <div className="mt-2.5 flex items-center justify-between gap-4 text-[11px] text-muted-foreground">
-        <span>
-          Step {startup.step} of 3 · {startup.label}
-        </span>
-        {startup.meta && (
-          <span className="shrink-0 font-mono text-[10px] tabular-nums text-foreground/65">
-            {startup.meta}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StartupAnimationGraphic({ animation }: { animation: StartupAnimation }) {
-  if (animation === "sparkles") {
-    return (
-      <div className="startup-sparkles mt-5" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-    );
-  }
-
-  if (animation === "dots") {
-    return (
-      <div className="startup-connecting mt-5" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-    );
-  }
-
-  return (
-    <div className="startup-blocks mt-5" aria-hidden="true">
-      <span />
-      <span />
-      <span />
-    </div>
-  );
-}
-
-export default LoadingScreen;

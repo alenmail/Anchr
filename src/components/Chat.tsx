@@ -173,11 +173,11 @@ function Chat() {
         ) : !activeSessionId ? (
           <div className="flex flex-1 flex-col items-center justify-center px-6">
             <div className="animate-fade-in-up text-center">
-              <h2 className="font-serif text-2xl italic text-foreground">
-                What would you like to build?
+              <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground">
+                Start building with Anchr.
               </h2>
               <p className="mt-2 max-w-md text-xs text-muted-foreground">
-                Create a new session or pick one from the sidebar to continue where you left off.
+                Connect to your place, inspect what exists, and turn ideas into scripts and playable systems.
               </p>
               <button
                 onClick={() => createSession.mutate()}

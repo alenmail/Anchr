@@ -40,7 +40,7 @@ function useProvidersQuery() {
 export function useAllProviders(): ProviderInfo[] {
   const { data } = useProvidersQuery();
   if (!data?.all) return [];
-  return data.all.map((p) => ({ id: p.id, name: p.name, env: p.env, source: p.source }));
+  return data.all.filter((p) => !(p.id === "opencode" && p.source === "custom")).map((p) => ({ id: p.id, name: p.name, env: p.env, source: p.source }));
 }
 
 /** OpenCode's provider list as it comes, with each model's full details. */
@@ -50,7 +50,7 @@ export function useProviderList(): ProviderListResponse | undefined {
 
 export function useConnectedProviders(): string[] {
   const { data } = useProvidersQuery();
-  return data?.connected ?? [];
+  return (data?.connected ?? []).filter((id) => id !== "opencode" || data?.all.find((p) => p.id === id)?.source !== "custom");
 }
 
 export function useAllModels(): ModelInfo[] {
@@ -58,7 +58,10 @@ export function useAllModels(): ModelInfo[] {
   if (!data?.all) return [];
   const models: ModelInfo[] = [];
   for (const provider of data.all) {
+    if (provider.id === "opencode" && provider.source === "custom") continue;
     for (const model of Object.values(provider.models)) {
+      // Anchr does not surface promotional or free-tier model listings.
+      if (/(?:^|[^a-z])free(?:$|[^a-z])/i.test(model.name) || /(?:[:_-])free$/i.test(model.id)) continue;
       models.push({
         id: model.id,
         name: model.name,

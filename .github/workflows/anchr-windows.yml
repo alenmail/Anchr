@@ -5,9 +5,10 @@ on:
     branches:
       - main
       - build/anchr-desktop-and-plugin
+      - feature/anchr-0.1.1-ui-provider-pin
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   windows:
@@ -42,6 +43,8 @@ jobs:
         run: node scripts/smoke-anchr-mcp.mjs
       - name: Typecheck Electron main process
         run: pnpm exec tsc -p electron/tsconfig.json --noEmit
+      - name: Typecheck Anchr UI
+        run: pnpm exec tsc --noEmit
       - name: Build Electron and React
         run: pnpm build
       - name: Package Windows installer
@@ -53,3 +56,18 @@ jobs:
           path: release/*.exe
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish versioned development release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.1-beta
+          name: Anchr v0.1.1 (beta)
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          generate_release_notes: false
+          body: |
+            Anchr v0.1.1 beta for Windows. Updated startup, provider setup, window pinning and UI.
+            This is an unsigned prerelease. Install only if you trust the project.
+            Live Roblox Studio integration still requires testing.
+          files: release/*.exe

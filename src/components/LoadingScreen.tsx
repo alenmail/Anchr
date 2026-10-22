@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { RefreshCw, Copy, CircleHelp } from "lucide-react";
-import logo from "@/assets/anchr-logo.svg";
+import logo from "@/assets/anchr-logo.webp";
 
 export type StartupAnimation = "sparkles" | "dots" | "blocks";
 export interface StartupProgress {

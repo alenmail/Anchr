@@ -14,7 +14,7 @@ import { OpenCodeClientProvider } from "@/providers/OpenCodeClientProvider";
 import { PreferencesProvider } from "@/providers/PreferencesProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { StudioTargetProvider } from "@/providers/StudioTargetProvider";
-import logo from "@/assets/anchr-logo.svg";
+import logo from "@/assets/anchr-logo.webp";
 
 function AppInner() {
   useUpdater();

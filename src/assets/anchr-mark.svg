@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="220 200 760 790">
+<defs><linearGradient id="w" x1="0" x2="0.8" y1="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#e9f0fb"/></linearGradient></defs>
+
+<path d="M332 578 592 225q9-14 17 0L863 577q9 12-3 20l-64 45q-9 7-17-5L609 372q-9-15-18 0L409 636q-7 12-19 4l-60-45q-8-6 2-17Z" fill="url(#w)"/>
+<path d="M599 441 485 586q-5 7 5 4l109-54Z" fill="#00c7ed"/>
+<path d="M599 441 713 586q5 7-5 4L599 536Z" fill="#087aff"/>
+<path d="M558 582 590 555q9-8 18 0l33 27v259q0 38 33 24L863 757q9-5 9-15v-22q0-8-10-8h-64q-9 0-3-10l23-28q5-6 13-11l127-74q10-6 10 7v118q0 51-47 77L610 977q-9 6-20 0L279 791q-47-26-47-77V596q0-13 10-7l127 74q8 5 13 11l23 28q6 10-3 10h-64q-10 0-10 8v22q0 10 9 15l189 108q33 14 33-24V582Z" fill="url(#w)"/>
+</svg>

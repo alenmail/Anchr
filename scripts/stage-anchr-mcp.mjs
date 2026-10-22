@@ -31,6 +31,36 @@ change("scripts/build-plugin.mjs", "scriptName: 'MCPPlugin'", "scriptName: 'Anch
 change("scripts/build-plugin.mjs", "toolbarName: 'MCP Integration'", "toolbarName: 'Anchr'");
 change("scripts/build-plugin.mjs", "buttonTitle: 'MCP Server'", "buttonTitle: 'Anchr'");
 change("scripts/build-plugin.mjs", "buttonTooltip: 'Connect to MCP Server for AI Integration'", "buttonTooltip: 'Anchr Studio by Stone'");
+
+// Roblox requires a hosted Image asset ID for a graphical toolbar icon.
+// If no Anchr image is uploaded yet, show the Anchr text label rather than
+// reusing Chrrxs' unrelated green M icon.
+const toolbarIconId = (process.env.ANCHR_STUDIO_ICON_ASSET_ID ?? "").trim();
+if (toolbarIconId && !/^\d{9,20}$/.test(toolbarIconId))
+  throw new Error("ANCHR_STUDIO_ICON_ASSET_ID must be the numeric Roblox Image asset ID");
+for (const [variant, original] of [
+  ["Disconnected", "75876056391496"],
+  ["Connecting", "71302583919560"],
+  ["Connected", "130958234173611"],
+]) {
+  change("scripts/build-plugin.mjs",
+    `buttonIcon${variant}: '${original}'`,
+    `buttonIcon${variant}: '${toolbarIconId}'`);
+}
+// Use a typed function so roblox-ts does not reject a compile-time
+// comparison of literal placeholders (TS2367). Placeholders are substituted
+// only after the plugin has been compiled.
+for (const state of ["DISCONNECTED", "CONNECTING", "CONNECTED"]) {
+  change("studio-plugin/src/server/index.server.ts",
+    `const ICON_${state} = "rbxassetid://__BUTTON_ICON_${state}__";`,
+    `const ICON_${state} = getAnchrToolbarIcon("__BUTTON_ICON_${state}__");`);
+}
+change("studio-plugin/src/server/index.server.ts",
+  'const ICON_DISCONNECTED = getAnchrToolbarIcon("__BUTTON_ICON_DISCONNECTED__");',
+  'function getAnchrToolbarIcon(assetId: string): string { return assetId === "" ? "" : "rbxassetid://" + assetId; }\nconst ICON_DISCONNECTED = getAnchrToolbarIcon("__BUTTON_ICON_DISCONNECTED__");');
+change("studio-plugin/src/server/index.server.ts",
+  'toolbar.CreateButton("__BUTTON_TITLE__", "__BUTTON_TOOLTIP__", ICON_DISCONNECTED)',
+  'toolbar.CreateButton("__BUTTON_TITLE__", "__BUTTON_TOOLTIP__", ICON_DISCONNECTED, "Anchr")');
 change("studio-plugin/src/modules/UI.ts", "`MCP Server v${CURRENT_VERSION}`", "`Anchr Studio v${CURRENT_VERSION}`");
 change("studio-plugin/src/modules/UI.ts", '<font color="#F0F0F0">MCP</font>', '<font color="#F0F0F0">Anchr</font>');
 change("studio-plugin/src/modules/UI.ts", '<font color="#999999">github</font> <font color="#CCCCCC">Chrrxs/robloxstudio-mcp</font>', '<font color="#999999">by</font> <font color="#CCCCCC">Stone</font>');
@@ -63,4 +93,4 @@ mkdirSync(join(pkg, "studio-plugin"), { recursive: true });
 copyFileSync(built, join(pkg, "studio-plugin", "MCPPlugin.rbxmx"));
 // Keep the upstream license with the redistributed server.
 copyFileSync(join(studio, "LICENSE"), join(stage, "CHRRXS-LICENSE"));
-console.log("[Anchr] Bundled Chrrxs MCP server and Anchr Studio plugin.");
+console.log(`[Anchr] Bundled Studio plugin; toolbar icon: ${toolbarIconId ? `asset ${toolbarIconId}` : "Anchr text (no legacy M icon)"}.`);

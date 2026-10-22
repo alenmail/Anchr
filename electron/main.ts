@@ -205,6 +205,9 @@ function patchConfig(input: unknown) {
         try {
           await writeFile(temporary, JSON.stringify(next, null, 2), { mode: 0o600 });
           await rename(temporary, destination);
+          if (Object.hasOwn(patch, "pinnedToScreen") && mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.setAlwaysOnTop(next.pinnedToScreen, "floating");
+          }
           // Keep the running OpenCode instance's provider catalog in sync with Settings.
           // Credentials remain in OpenCode's auth store and are never written to Anchr settings.
           if (Object.hasOwn(patch, "customEndpoint")) {
@@ -273,6 +276,50 @@ const registerIpcHandlers = Effect.sync(() => {
   ipcMain.handle(channels.getBloxBotPrograms, () => bloxbotProgramStore.current());
   ipcMain.handle(channels.loadConfig, () => runMain(loadConfig));
   ipcMain.handle(channels.patchConfig, (_event, patch: unknown) => runMain(patchConfig(patch)));
+  ipcMain.handle(channels.getPinnedState, (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    return Boolean(win?.isAlwaysOnTop());
+  });
+  ipcMain.handle(channels.setPinnedState, async (event, pinned: unknown) => {
+    if (typeof pinned !== "boolean") throw new Error("Invalid pin state");
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win || win.isDestroyed()) throw new Error("Anchr window is unavailable");
+    win.setAlwaysOnTop(pinned, "floating");
+    const applied = win.isAlwaysOnTop();
+    if (applied !== pinned) throw new Error("Windows did not accept the always-on-top setting");
+    await runMain(patchConfig({ pinnedToScreen: applied }));
+    return applied;
+  });
+  ipcMain.handle(channels.discoverCompatibleModels, async (_event, baseURL: unknown, apiKey: unknown) => {
+    if (typeof baseURL !== "string" || baseURL.length > 2048 || typeof apiKey !== "string" || apiKey.length > 8192)
+      throw new Error("Invalid endpoint details");
+    const parsed = new URL(baseURL.trim());
+    const isLoopback = ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname);
+    if (parsed.username || parsed.password || (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && isLoopback)))
+      throw new Error("Use HTTPS, or HTTP on localhost for a local model server");
+    const endpoint = new URL(parsed.toString().replace(/\\/+$/, "") + "/models");
+    const response = await fetch(endpoint, {
+      headers: { "Accept": "application/json", ...(apiKey.trim() ? { Authorization: `Bearer ${apiKey.trim()}` } : {}) },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!response.ok) throw new Error(`Model discovery returned HTTP ${response.status}. Verify the URL and API key.`);
+    const length = Number(response.headers.get("content-length") || "0");
+    if (length > 1024 * 1024) throw new Error("Model list is too large");
+    const body = await response.text();
+    if (body.length > 1024 * 1024) throw new Error("Model list is too large");
+    const payload = JSON.parse(body) as { data?: unknown };
+    if (!Array.isArray(payload.data)) throw new Error("No models found: expected an OpenAI-compatible /models response");
+    const names = new Map<string, string>();
+    for (const value of payload.data) {
+      if (!value || typeof value !== "object" || !("id" in value) || typeof value.id !== "string") continue;
+      const id = value.id.trim();
+      if (!id || id.length > 256) continue;
+      const label = "name" in value && typeof value.name === "string" ? value.name.trim() : id;
+      names.set(id, label || id);
+    }
+    if (!names.size) throw new Error("This endpoint returned no usable models");
+    return [...names.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  });
   ipcMain.handle(channels.installStudioTargetPrograms, (_event, input: unknown) =>
     openCodeRuntime.runPromise(
       Effect.gen(function* () {
@@ -381,6 +428,7 @@ const registerIpcHandlers = Effect.sync(() => {
 
 function createWindow(): Effect.Effect<void, DesktopMainError> {
   return Effect.gen(function* () {
+    const config = yield* loadConfig;
     const window = yield* Effect.try({
       try: () =>
         new BrowserWindow({
@@ -404,6 +452,7 @@ function createWindow(): Effect.Effect<void, DesktopMainError> {
 
     yield* Effect.sync(() => {
       mainWindow = window;
+      window.setAlwaysOnTop(config.pinnedToScreen, "floating");
       window.webContents.setUserAgent(
         `${window.webContents.getUserAgent()} Anchr/${app.getVersion()}`,
       );

@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - build/anchr-desktop-and-plugin
-      - feature/anchr-0.1.1-ui-provider-pin
+      - feature/anchr-v0.1.2-professional-polish
 
 permissions:
   contents: write
@@ -61,13 +61,13 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.1-beta
-          name: Anchr v0.1.1 (beta)
+          tag_name: v0.1.2-beta
+          name: Anchr v0.1.2 (beta)
           target_commitish: ${{ github.sha }}
           prerelease: true
           generate_release_notes: false
           body: |
-            Anchr v0.1.1 beta for Windows. Updated startup, provider setup, window pinning and UI.
+            Anchr v0.1.2 beta for Windows. Refined startup and About interface, real window pinning, model discovery and first-launch walkthrough.
             This is an unsigned prerelease. Install only if you trust the project.
             Live Roblox Studio integration still requires testing.
           files: release/*.exe

@@ -61,6 +61,9 @@ interface DesktopEffects {
   readonly openUrl: (url: string) => Effect.Effect<void, DesktopError>;
   readonly loadConfig: Effect.Effect<AppConfig, DesktopError>;
   readonly patchConfig: (patch: Partial<AppConfig>) => Effect.Effect<void, DesktopError>;
+  readonly getPinnedState: Effect.Effect<boolean, DesktopError>;
+  readonly setPinnedState: (pinned: boolean) => Effect.Effect<boolean, DesktopError>;
+  readonly discoverCompatibleModels: (url: string, key: string) => Effect.Effect<Array<{id: string; name: string}>, DesktopError>;
   readonly checkForUpdate: Effect.Effect<UpdateInfo | null, DesktopError>;
   readonly installUpdate: Effect.Effect<void, DesktopError>;
   readonly relaunch: Effect.Effect<void, DesktopError>;
@@ -108,6 +111,9 @@ const browserEffects: DesktopEffects = {
   ),
   getOpenCodeInstallFolder: Effect.succeed(null),
   getStudioMcpStatus: Effect.succeed({ state: "starting" }),
+  getPinnedState: Effect.succeed(false),
+  setPinnedState: (_pinned) => Effect.succeed(false),
+  discoverCompatibleModels: (_url, _key) => Effect.fail(new DesktopError({message: "Model discovery requires the desktop app."})),
   getVersion: Effect.succeed("0.5.2"),
   getInstructionFiles: Effect.succeed([]),
   openUrl: (url) =>
@@ -185,6 +191,9 @@ function makeBridgeEffects(api: DesktopApi): DesktopEffects {
     getOpenCodeInstallFolder: invoke("Failed to get the OpenCode folder", () =>
       api.getOpenCodeInstallFolder(),
     ).pipe(decodeBridgeValue("OpenCode folder is invalid", Schema.NullOr(Schema.String))),
+    getPinnedState: invoke("Failed to read pin state", () => api.getPinnedState()),
+    setPinnedState: (pinned) => invoke("Failed to pin window", () => api.setPinnedState(pinned)),
+    discoverCompatibleModels: (url, key) => invoke("Failed to load models", () => api.discoverCompatibleModels(url, key)),
     getStudioMcpStatus: invoke("Failed to get the Studio MCP status", () =>
       api.getStudioMcpStatus(),
     ).pipe(decodeBridgeValue("Studio MCP status is invalid", StudioMcpStatusSchema)),
@@ -247,6 +256,9 @@ export const desktop: DesktopApi = {
   getOpenCodeInfo: () => runPromise(desktopEffects.getOpenCodeInfo),
   getOpenCodeInstallFolder: () => runPromise(desktopEffects.getOpenCodeInstallFolder),
   getStudioMcpStatus: () => runPromise(desktopEffects.getStudioMcpStatus),
+  getPinnedState: () => runPromise(desktopEffects.getPinnedState),
+  setPinnedState: (pinned) => runPromise(desktopEffects.setPinnedState(pinned)),
+  discoverCompatibleModels: (url, key) => runPromise(desktopEffects.discoverCompatibleModels(url, key)),
   onOpenCodeStartupProgress: (listener: StartupProgressListener) =>
     window.bloxbot?.onOpenCodeStartupProgress(listener) ?? (() => {}),
   getVersion: () => runPromise(desktopEffects.getVersion),

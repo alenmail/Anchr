@@ -1,0 +1,144 @@
+import { Schema } from "effect";
+import type { BloxBotProgramManifest } from "../lib/bloxbotProgramManifest";
+import type { ExplorerProgramEnvelope, ExplorerSnapshot } from "../lib/explorer";
+import type { GeneratedProgramArtifact } from "./generatedProgram";
+import {
+  type StudioTargetDiscovery,
+  type StudioTargetProgramEnvelopes,
+  type StudioTargetPrograms,
+  StudioTargetProgramsSchema,
+  StudioTargetSchema,
+  type StudioTargetSelection,
+} from "./studioTarget";
+
+const MutableStrings = Schema.mutable(Schema.Array(Schema.String));
+
+export const ThemePreferenceSchema = Schema.Literal("light", "dark", "system");
+export const DetailedAnalyticsPreferenceSchema = Schema.Literal("unset", "enabled", "disabled");
+
+export type ThemePreference = typeof ThemePreferenceSchema.Type;
+
+export const AppConfigSchema = Schema.mutable(
+  Schema.Struct({
+    lastModel: Schema.NullOr(Schema.String),
+    hiddenModels: MutableStrings,
+    theme: ThemePreferenceSchema,
+    detailedAnalytics: DetailedAnalyticsPreferenceSchema,
+    // Highest analytics policy notice the user has seen; 0 predates the opt-out model.
+    analyticsNoticeVersion: Schema.Number,
+    studioTargetPrograms: Schema.NullOr(StudioTargetProgramsSchema),
+    studioTargetsBySession: Schema.Record({ key: Schema.String, value: StudioTargetSchema }),
+  }),
+);
+
+export type AppConfig = typeof AppConfigSchema.Type;
+
+export const DEFAULT_APP_CONFIG: AppConfig = {
+  lastModel: null,
+  hiddenModels: [],
+  theme: "dark",
+  detailedAnalytics: "disabled",
+  analyticsNoticeVersion: 2,
+  studioTargetPrograms: null,
+  studioTargetsBySession: {},
+};
+
+export const AppConfigPatchSchema = Schema.partial(AppConfigSchema);
+
+export const OpenCodeInfoSchema = Schema.mutable(
+  Schema.Struct({
+    authorization: Schema.String,
+    port: Schema.Number.pipe(Schema.int(), Schema.between(1, 65_535)),
+    workspace: Schema.String,
+  }),
+);
+
+export type OpenCodeInfo = typeof OpenCodeInfoSchema.Type;
+
+export type OpenCodeStartupProgress =
+  | { phase: "checking" }
+  | {
+      phase: "downloading";
+      downloadedBytes: number;
+      totalBytes: number | null;
+      bytesPerSecond: number;
+    }
+  | { phase: "verifying" }
+  | { phase: "installing" }
+  | { phase: "starting" };
+
+export const InstructionFileSchema = Schema.Struct({
+  path: Schema.String,
+  scope: Schema.Literal("global", "project"),
+  chars: Schema.Number,
+  content: Schema.String,
+});
+
+export type InstructionFile = typeof InstructionFileSchema.Type;
+
+export const UpdateInfoSchema = Schema.mutable(
+  Schema.Struct({
+    version: Schema.String,
+    body: Schema.NullOr(Schema.String),
+  }),
+);
+
+export type UpdateInfo = typeof UpdateInfoSchema.Type;
+
+/**
+ * Whether BloxBot could start Roblox Studio's MCP helper. `not_installed` means the helper
+ * isn't on this computer, `unavailable` means it started but closed before it connected.
+ */
+export const StudioMcpStatusSchema = Schema.Struct({
+  state: Schema.Literal("starting", "connected", "not_installed", "unavailable"),
+});
+
+export type StudioMcpStatus = typeof StudioMcpStatusSchema.Type;
+
+/** A main-process error forwarded to the renderer, which reports it through PostHog. */
+export interface MainErrorReport {
+  source: string;
+  name: string;
+  message: string;
+  stack?: string;
+}
+
+export interface DesktopApi {
+  compileExplorerProgram(program: ExplorerProgramEnvelope): Promise<GeneratedProgramArtifact>;
+  invokeExplorerProgram(
+    artifact: GeneratedProgramArtifact,
+    studioId: string,
+  ): Promise<ExplorerSnapshot>;
+  /** The Studio tools an Explorer program may call now, by Studio's own name. */
+  listExplorerProgramTools(): Promise<readonly string[]>;
+  getOpenCodeInfo(): Promise<OpenCodeInfo>;
+  /** The folder OpenCode installs into, for antivirus exclusions. Null outside the desktop app. */
+  getOpenCodeInstallFolder(): Promise<string | null>;
+  getStudioMcpStatus(): Promise<StudioMcpStatus>;
+  onOpenCodeStartupProgress(listener: (progress: OpenCodeStartupProgress) => void): () => void;
+  getVersion(): Promise<string>;
+  getInstructionFiles(): Promise<readonly InstructionFile[]>;
+  openUrl(url: string): Promise<void>;
+  loadConfig(): Promise<AppConfig>;
+  patchConfig(patch: Partial<AppConfig>): Promise<void>;
+  checkForUpdate(): Promise<UpdateInfo | null>;
+  installUpdate(): Promise<void>;
+  relaunch(): Promise<void>;
+  installStudioTargetPrograms(
+    envelopes: StudioTargetProgramEnvelopes,
+  ): Promise<StudioTargetPrograms>;
+  discoverStudioTargets(programs: StudioTargetPrograms): Promise<StudioTargetDiscovery>;
+  selectStudioTarget(
+    programs: StudioTargetPrograms,
+    targetKey: string,
+  ): Promise<StudioTargetSelection>;
+  /** The newest verified published BloxBot programs, or null to use the built-in ones. */
+  getBloxBotPrograms(): Promise<BloxBotProgramManifest | null>;
+  /** Called when newer published BloxBot programs arrive; returns an unsubscribe. */
+  onBloxBotProgramsUpdated(listener: () => void): () => void;
+  /**
+   * Receives errors from the main process so the renderer can report them. Subscribing
+   * tells the main process the window is ready, which flushes errors buffered until then.
+   */
+  onMainError(listener: (report: MainErrorReport) => void): () => void;
+}

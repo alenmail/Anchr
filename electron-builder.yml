@@ -1,0 +1,34 @@
+appId: dev.stone.anchr
+productName: Anchr
+directories:
+  output: release
+files:
+  - dist/**
+  - dist-electron/**
+  - package.json
+  - "!node_modules/**"
+npmRebuild: false
+asar: true
+mac:
+  category: public.app-category.developer-tools
+  icon: electron/icons/icon.icns
+  hardenedRuntime: true
+  artifactName: Anchr-${version}-mac.${ext}
+  target:
+    - dmg
+    - zip
+win:
+  icon: electron/icons/icon.ico
+  artifactName: Anchr-Setup-${version}.${ext}
+  target:
+    - nsis
+linux:
+  category: Development
+  icon: electron/icons/icon.png
+  artifactName: Anchr-${version}-linux-amd64.${ext}
+  target:
+    - deb
+publish: null
+extraResources:
+  - from: vendor/anchr-mcp/node_modules
+    to: anchr-mcp/node_modules

@@ -14,7 +14,7 @@ const stage = join(root, "vendor", "anchr-mcp");
 const pkg = join(stage, "node_modules", "@chrrxs", "robloxstudio-mcp");
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 function run(command, args, cwd = root) {
-  const cmd = spawnSync(command, args, { cwd, stdio: "inherit", shell: false });
+  const cmd = spawnSync(command, args, { cwd, stdio: "inherit", shell: process.platform === "win32" });
   if (cmd.error) throw cmd.error;
   if (cmd.status !== 0) throw new Error(`${command} ${args.join(" ")} exited with ${cmd.status}`);
 }

@@ -297,7 +297,7 @@ const registerIpcHandlers = Effect.sync(() => {
     const isLoopback = ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname);
     if (parsed.username || parsed.password || (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && isLoopback)))
       throw new Error("Use HTTPS, or HTTP on localhost for a local model server");
-    const endpoint = new URL(parsed.toString().replace(/\\/+$/, "") + "/models");
+    const endpoint = new URL(parsed.toString().replace(/\/+$/, "") + "/models");
     const response = await fetch(endpoint, {
       headers: { "Accept": "application/json", ...(apiKey.trim() ? { Authorization: `Bearer ${apiKey.trim()}` } : {}) },
       signal: AbortSignal.timeout(12000),

@@ -874,30 +874,26 @@ function PrivacyTab() {
     <div className="mx-auto w-full max-w-md px-4 py-6 @xl:px-6 @xl:py-8">
       <h4 className="font-serif text-lg italic text-foreground">Privacy</h4>
       <p className="mt-1 text-xs text-muted-foreground">
-        Anchr uses PostHog's standard product analytics with persistent device and session
-        identifiers, but events stay anonymous: no person profile is created. Error reports are
-        included, with personal file paths, usernames, email addresses and API keys removed. They
-        can name the provider and model an error came from. Attached images and files are never
-        uploaded.
+        Anchr does not send the original application's product analytics. The upstream
+        PostHog token and telemetry endpoint are disabled in this build. AI requests
+        still go to whichever model provider you connect and authorize.
       </p>
 
       <div className="mt-6 rounded-lg border bg-card p-3.5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="text-sm font-medium">Share AI usage data</div>
+            <div className="text-sm font-medium">Product telemetry (disabled)</div>
             <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-              Shares your prompts, AI responses and reasoning, tool calls and their results, code
-              changes, instruction files like AGENTS.md, timings, provider and model names, token
-              counts, and Roblox place IDs and names, on by default. Turn this off to keep
-              conversations and model usage out of analytics. Basic app health events and error
-              reports remain enabled.
+              Anchr product analytics are not configured. This control is intentionally disabled;
+              your model provider may still process the prompts and files you choose to send.
             </p>
           </div>
           <button
             type="button"
             role="switch"
             aria-checked={detailedAnalyticsEnabled}
-            aria-label="Share AI usage data"
+            aria-label="Product telemetry disabled"
+            disabled
             onClick={() => setDetailedAnalyticsEnabled(!detailedAnalyticsEnabled)}
             className={`relative mt-0.5 inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
               detailedAnalyticsEnabled ? "bg-foreground" : "bg-border"
@@ -917,8 +913,6 @@ function PrivacyTab() {
   );
 }
 
-const PRIVACY_POLICY_URL = "https://github.com/alenmail/Anchr/privacy";
-const TERMS_URL = "https://github.com/alenmail/Anchr/terms";
 
 function PrivacyDetails() {
   const deviceId = analyticsDeviceId();
@@ -950,28 +944,9 @@ function PrivacyDetails() {
           </button>
         </div>
       )}
-      <p>
-        Include your device ID when asking Paralov AS to access or delete your data at{" "}
-        <span className="select-text text-foreground">hello@paralov.com</span>. Read the{" "}
-        <a
-          href={PRIVACY_POLICY_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="underline underline-offset-2"
-        >
-          Privacy Policy
-        </a>{" "}
-        and{" "}
-        <a
-          href={TERMS_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="underline underline-offset-2"
-        >
-          Terms of Service
-        </a>
-        .
-      </p>
+      <p>Stone has not published an Anchr privacy policy or support address. This build does not
+        use Paralov's personal-data request service. Do not submit privacy requests for Anchr to
+        the original BloxBot maintainers.</p>
     </div>
   );
 }
@@ -1182,7 +1157,7 @@ function AboutTab({ appVersion }: { appVersion: string | null }) {
           ))}
         </div>
         <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted-foreground">
-          Anchr is powered by these projects. Thank you to the teams behind them.
+          Anchr by Stone incorporates MIT-licensed BloxBot and Chrrxs Studio MCP. Their original contributors retain attribution.
         </p>
       </div>
 

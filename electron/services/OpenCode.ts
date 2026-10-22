@@ -113,6 +113,7 @@ interface PreparedOpenCode {
 }
 
 export interface OpenCodeOptions {
+  userConfigPath?: string;
   binaryCacheDirectory: string;
   workspace: string;
   onStartupProgress?: (progress: OpenCodeStartupProgress) => void;
@@ -296,7 +297,18 @@ function prepareOpenCode(
       ),
       { concurrency: "unbounded", discard: true },
     );
-    const config = createOpenCodeConfig(broker.info);
+    const customEndpoint = yield* Effect.promise(async () => {
+      if (!options.userConfigPath) return null;
+      try {
+        const source = JSON.parse(await readFile(options.userConfigPath, "utf8")) as {
+          customEndpoint?: { baseURL?: string; modelId?: string } | null;
+        };
+        if (source.customEndpoint?.baseURL && source.customEndpoint.modelId)
+          return { baseURL: source.customEndpoint.baseURL, modelId: source.customEndpoint.modelId };
+      } catch { /* First launch or invalid stored config — no custom provider yet. */ }
+      return null;
+    });
+    const config = createOpenCodeConfig(broker.info, customEndpoint);
     yield* fileOperation("Failed to write the OpenCode configuration", () =>
       writeFile(
         join(configDirectory, "opencode.json"),

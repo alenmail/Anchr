@@ -29,3 +29,25 @@ try:
 except Exception as error:
     print("macOS .icns generation skipped:", error)
 print("Anchr installer icons generated.")
+
+
+# A separate transparent toolbar mark (no app-icon background). Roblox requires
+# uploading this image as an Image asset before Studio can use its asset ID.
+MARK_SIZE = 1024
+raw = Image.new("RGBA", (SIZE * SCALE, SIZE * SCALE), (0, 0, 0, 0))
+d = ImageDraw.Draw(raw)
+poly([(332,578),(592,225),(609,225),(863,577),(860,597),(796,642),(779,637),(609,372),(599,371),(409,636),(390,640),(330,595)],WHITE)
+poly([(599,441),(485,586),(490,590),(599,536)],CYAN)
+poly([(599,441),(713,586),(708,590),(599,536)],BLUE)
+poly([(590,555),(609,555),(641,582),(641,841),(654,868),(674,865),(863,757),(872,742),(872,720),(862,712),(798,712),(795,702),(818,674),(958,589),(968,596),(968,714),(947,768),(921,791),(610,977),(590,977),(279,791),(253,768),(232,714),(232,596),(242,589),(382,674),(405,702),(402,712),(338,712),(328,720),(328,742),(337,757),(526,865),(546,868),(559,841),(559,582)],WHITE)
+raw = raw.resize((SIZE,SIZE),Image.Resampling.LANCZOS)
+# Leave transparent padding so thin details survive Roblox's small toolbar size.
+crop = tuple(round(x * SIZE / 1200) for x in (195, 182, 1005, 1008))
+raw = raw.crop(crop)
+raw.thumbnail((MARK_SIZE-90,MARK_SIZE-90),Image.Resampling.LANCZOS)
+toolbar = Image.new("RGBA",(MARK_SIZE,MARK_SIZE),(0,0,0,0))
+toolbar.alpha_composite(raw,((MARK_SIZE-raw.width)//2,(MARK_SIZE-raw.height)//2))
+ASSETS = ROOT / "assets"
+ASSETS.mkdir(parents=True,exist_ok=True)
+toolbar.resize((512,512),Image.Resampling.LANCZOS).save(ASSETS/"anchr-studio-toolbar.png",optimize=True)
+print("Anchr transparent Roblox toolbar image generated.")

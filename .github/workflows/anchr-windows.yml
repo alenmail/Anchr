@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - build/anchr-desktop-and-plugin
-      - feature/anchr-v0.1.2-professional-polish
+      - fix/anchr-splash-and-studio-toolbar
 
 permissions:
   contents: write
@@ -38,6 +38,8 @@ jobs:
       - name: Generate Anchr desktop icons
         run: pnpm icons:anchr
       - name: Bundle MCP server and compile Anchr Studio plugin
+        env:
+          ANCHR_STUDIO_ICON_ASSET_ID: ${{ vars.ANCHR_STUDIO_ICON_ASSET_ID }}
         run: pnpm stage:anchr-mcp
       - name: Verify MCP handshake and Chrrxs tools
         run: node scripts/smoke-anchr-mcp.mjs
@@ -61,13 +63,15 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.2-beta
-          name: Anchr v0.1.2 (beta)
+          tag_name: v0.1.3-beta
+          name: Anchr v0.1.3 (beta)
           target_commitish: ${{ github.sha }}
           prerelease: true
           generate_release_notes: false
           body: |
-            Anchr v0.1.2 beta for Windows. Refined startup and About interface, real window pinning, model discovery and first-launch walkthrough.
+            Anchr v0.1.3 beta for Windows. Borderless Anchr startup mark and fully rebranded Studio toolbar (with optional uploaded Anchr Image asset ID).
             This is an unsigned prerelease. Install only if you trust the project.
             Live Roblox Studio integration still requires testing.
-          files: release/*.exe
+          files: |
+            release/*.exe
+            assets/anchr-studio-toolbar.png

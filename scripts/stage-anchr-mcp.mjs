@@ -57,7 +57,7 @@ for (const state of ["DISCONNECTED", "CONNECTING", "CONNECTED"]) {
 }
 change("studio-plugin/src/server/index.server.ts",
   'const ICON_DISCONNECTED = getAnchrToolbarIcon("__BUTTON_ICON_DISCONNECTED__");',
-  'function getAnchrToolbarIcon(assetId: string): string { return assetId === "" ? "" : "rbxassetid://" + assetId; }\\nconst ICON_DISCONNECTED = getAnchrToolbarIcon("__BUTTON_ICON_DISCONNECTED__");');
+  'function getAnchrToolbarIcon(assetId: string): string { return assetId === "" ? "" : "rbxassetid://" + assetId; }\nconst ICON_DISCONNECTED = getAnchrToolbarIcon("__BUTTON_ICON_DISCONNECTED__");');
 change("studio-plugin/src/server/index.server.ts",
   'toolbar.CreateButton("__BUTTON_TITLE__", "__BUTTON_TOOLTIP__", ICON_DISCONNECTED)',
   'toolbar.CreateButton("__BUTTON_TITLE__", "__BUTTON_TOOLTIP__", ICON_DISCONNECTED, "Anchr")');

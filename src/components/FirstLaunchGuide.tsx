@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Check, ChevronLeft, Code2, Gamepad2, Pin, PlugZap, Sparkles } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, Code2, Gamepad2, PlugZap, Sparkles } from "lucide-react";
 import logo from "@/assets/anchr-logo.webp";
 
 const steps = [

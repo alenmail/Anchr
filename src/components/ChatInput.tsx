@@ -1,6 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import ModelStatusBadge from "@/components/ModelStatusBadge";
 import PromptEditor, { type PromptEditorHandle } from "@/components/PromptEditor";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
@@ -8,14 +7,13 @@ import { useAbort } from "@/hooks/mutations/useAbort";
 import { useSendMessage } from "@/hooks/mutations/useSendMessage";
 import { useAgents } from "@/hooks/useAgents";
 import { useCommands } from "@/hooks/useCommands";
-import { useAllModels, useConnectedProviders } from "@/hooks/useProviders";
+import { useAllModels } from "@/hooks/useProviders";
 import { useIsBusy } from "@/hooks/useSessionStatuses";
 import { splitModelKey } from "@/lib/splitModelKey";
 import { useActiveSession } from "@/providers/ActiveSessionProvider";
 import { useExplorerReference } from "@/providers/ExplorerReferenceProvider";
 import { usePreferences } from "@/providers/PreferencesProvider";
 import { useStudioTargetOptional } from "@/providers/StudioTargetProvider";
-import type { ModelInfo } from "@/types";
 
 // ── Image attachment helpers ────────────────────────────────────────────
 
@@ -232,7 +230,6 @@ const SendButton = memo(function SendButton({
 function ChatInput() {
   const { pendingReference, consumeReference, objects } = useExplorerReference();
   const allModels = useAllModels();
-  const connectedProviders = useConnectedProviders();
   const agents = useAgents();
   const commands = useCommands();
   const { activeSessionId, activeSessionIdRef } = useActiveSession();
@@ -241,8 +238,6 @@ function ChatInput() {
     selectedModel,
     selectedAgent,
     selectedVariant,
-    hiddenModels,
-    setSelectedModel,
     setSelectedAgent,
     setSelectedVariant,
   } = usePreferences();
@@ -262,14 +257,10 @@ function ChatInput() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [lbSlideDir, setLbSlideDir] = useState<"left" | "right" | null>(null);
   const [lbAnimKey, setLbAnimKey] = useState(0);
-  const [showModelPicker, setShowModelPicker] = useState(false);
   const [showAgentPicker, setShowAgentPicker] = useState(false);
-  const [modelSearch, setModelSearch] = useState("");
   const [rejectShake, setRejectShake] = useState(false);
   const promptEditorRef = useRef<PromptEditorHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const modelSearchRef = useRef<HTMLInputElement>(null);
-  const modelPickerRef = useRef<HTMLDivElement>(null);
   const agentPickerRef = useRef<HTMLDivElement>(null);
   const dragCounterRef = useRef(0);
   const rejectTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -427,58 +418,15 @@ function ChatInput() {
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (modelPickerRef.current && !modelPickerRef.current.contains(e.target as Node)) {
-        setShowModelPicker(false);
-        setModelSearch("");
-      }
       if (agentPickerRef.current && !agentPickerRef.current.contains(e.target as Node)) {
         setShowAgentPicker(false);
       }
     }
-    if (showModelPicker || showAgentPicker) {
+    if (showAgentPicker) {
       document.addEventListener("mousedown", handleClick);
       return () => document.removeEventListener("mousedown", handleClick);
     }
-  }, [showModelPicker, showAgentPicker]);
-
-  const modelsByProvider = useMemo(() => {
-    const POPULAR = [
-      "anchr-compatible",
-      "anthropic",
-      "github-copilot",
-      "openai",
-      "google",
-      "openrouter",
-      "vercel",
-    ];
-    const query = modelSearch.toLowerCase().trim();
-    const groups: Record<string, { providerName: string; models: ModelInfo[] }> = {};
-    for (const model of allModels) {
-      if (!connectedProviders.includes(model.providerId)) continue;
-      const modelKey = `${model.providerId}/${model.id}`;
-      if (hiddenModels.has(modelKey)) continue;
-      if (query) {
-        const haystack = `${model.name} ${model.id} ${model.providerName}`.toLowerCase();
-        if (!haystack.includes(query)) continue;
-      }
-      if (!groups[model.providerId])
-        groups[model.providerId] = { providerName: model.providerName, models: [] };
-      groups[model.providerId].models.push(model);
-    }
-    for (const group of Object.values(groups))
-      group.models.sort((a, b) => a.name.localeCompare(b.name));
-    // Sort provider groups: popular first, then alphabetical
-    const entries = Object.entries(groups);
-    entries.sort(([aId], [bId]) => {
-      const aIdx = POPULAR.indexOf(aId);
-      const bIdx = POPULAR.indexOf(bId);
-      if (aIdx >= 0 && bIdx >= 0) return aIdx - bIdx;
-      if (aIdx >= 0) return -1;
-      if (bIdx >= 0) return 1;
-      return groups[aId].providerName.localeCompare(groups[bId].providerName);
-    });
-    return entries;
-  }, [allModels, connectedProviders, hiddenModels, modelSearch]);
+  }, [showAgentPicker]);
 
   const visibleAgents = useMemo(
     () => agents.filter((a) => !a.hidden && (a.mode === "primary" || a.mode === "all")),
@@ -509,144 +457,15 @@ function ChatInput() {
       .catch(() => undefined);
   }
 
-  function handleModelClick(model: ModelInfo) {
-    const fullId = `${model.providerId}/${model.id}`;
-    setSelectedModel(fullId);
-    setShowModelPicker(false);
-    setModelSearch("");
-  }
-
-  const modelDisplay = selectedModel
-    ? (selectedModel.split("/").pop() ?? selectedModel)
-    : "Select model";
   const agentDisplay = selectedAgent ?? "Default agent";
   const selectedVariantIndex = selectedVariant
     ? Math.max(0, availableVariants.indexOf(selectedVariant) + 1)
     : 0;
   const variantDisplay = selectedVariant ?? "Default";
 
-  function renderProviderGroup(
-    providerId: string,
-    group: { providerName: string; models: ModelInfo[] },
-  ) {
-    return (
-      <div key={providerId}>
-        <div className="flex items-center gap-1.5 px-2 py-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {group.providerName}
-          </span>
-        </div>
-        {group.models.map((model) => {
-          const fullId = `${model.providerId}/${model.id}`;
-          const isSelected = selectedModel === fullId;
-          return (
-            <button
-              key={fullId}
-              onClick={() => handleModelClick(model)}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors ${isSelected ? "bg-accent font-medium text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
-            >
-              <span className="truncate">{model.name}</span>
-              <ModelStatusBadge status={model.status} />
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
-
   return (
     <div className="shrink-0 border-t bg-card px-4 py-3">
       <div className="relative mb-2 flex items-center gap-1">
-        <div className="relative" ref={modelPickerRef}>
-          <button
-            onClick={() => {
-              setShowModelPicker(!showModelPicker);
-              setShowAgentPicker(false);
-              if (showModelPicker) {
-                setModelSearch("");
-              }
-            }}
-            className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-            </svg>
-            {modelDisplay}
-          </button>
-          {showModelPicker && (
-            <div className="absolute bottom-full left-0 z-50 mb-1 flex max-h-80 w-80 flex-col rounded-lg border bg-popover shadow-lg">
-              <div className="shrink-0 border-b px-2 py-1.5">
-                <div className="flex items-center gap-1.5 rounded-md border bg-background px-2">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="shrink-0 text-muted-foreground/50"
-                  >
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
-                  <input
-                    ref={modelSearchRef}
-                    type="text"
-                    value={modelSearch}
-                    onChange={(e) => setModelSearch(e.target.value)}
-                    placeholder="Search models..."
-                    className="h-7 flex-1 bg-transparent text-xs placeholder:text-muted-foreground/40 focus:outline-none"
-                    autoFocus
-                  />
-                  {modelSearch && (
-                    <button
-                      onClick={() => {
-                        setModelSearch("");
-                        modelSearchRef.current?.focus();
-                      }}
-                      className="flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
-                    >
-                      <svg
-                        width="8"
-                        height="8"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto p-1">
-                {modelsByProvider.map(([id, group]) => renderProviderGroup(id, group))}
-                {modelsByProvider.length === 0 && (
-                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-                    No models matching "{modelSearch}"
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
         {availableVariants.length > 0 && (
           <Popover>
             <PopoverTrigger asChild>
@@ -786,7 +605,6 @@ function ChatInput() {
                 <button
                   onClick={() => {
                     setShowAgentPicker(!showAgentPicker);
-                    setShowModelPicker(false);
                   }}
                   className="flex max-w-28 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 >

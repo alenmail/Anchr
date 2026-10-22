@@ -60,6 +60,8 @@ export function useAllModels(): ModelInfo[] {
   for (const provider of data.all) {
     if (provider.id === "opencode" && provider.source === "custom") continue;
     for (const model of Object.values(provider.models)) {
+      // Anchr does not surface promotional or free-tier model listings.
+      if (/(?:^|[^a-z])free(?:$|[^a-z])/i.test(model.name) || /(?:[:_-])free$/i.test(model.id)) continue;
       models.push({
         id: model.id,
         name: model.name,

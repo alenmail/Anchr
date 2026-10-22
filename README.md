@@ -4,7 +4,7 @@
 
 ![Anchr mark](public/anchr-logo.svg)
 
-The desktop is a customized MIT-licensed [BloxBot](https://github.com/paralov/app-bloxbot-ai) application. It connects **only** to a locally bundled [Chrrxs Roblox Studio MCP](https://github.com/Chrrxs/robloxstudio-mcp) server and its **Anchr Studio** Roblox plugin; the native Roblox Studio MCP helper is no longer used by the desktop runtime.
+The desktop is a customized MIT-licensed application. It connects **only** to a locally bundled server and its **Anchr Studio** Roblox plugin; the native Roblox Studio MCP helper is no longer used by the desktop runtime.
 
 ## How it works
 
@@ -28,6 +28,6 @@ CI builds use the same steps. No npm installation is required for users of the p
 - Roblox Studio must allow local HTTP requests for plugin communications. Anchr does **not** require toggling Studio's built-in `Enable Studio as MCP server`.
 - The Studio plugin is based on the full Chrrxs implementation (debugging, playtesting, performance tools). Tool availability depends on the server's supported version and Studio session state.
 - Only local MCP broker interfaces are intended to be exposed. Do not expose them to other computers.
-- Anchr is not affiliated with Roblox, the original BloxBot project or Chrrxs. Keep original MIT notices (see `LICENSE` and `vendor/robloxstudio-mcp/LICENSE`).
+- Anchr is not affiliated with Roblox.
 - This is not a verified production release until Windows CI and real Roblox Studio integration tests have passed.
 - Automatic updates and upstream product telemetry are disabled until Anchr controls its own release infrastructure.

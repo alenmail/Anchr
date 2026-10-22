@@ -38,6 +38,10 @@ jobs:
         run: pnpm icons:anchr
       - name: Bundle MCP server and compile Anchr Studio plugin
         run: pnpm stage:anchr-mcp
+      - name: Verify MCP handshake and Chrrxs tools
+        run: node scripts/smoke-anchr-mcp.mjs
+      - name: Typecheck Electron main process
+        run: pnpm exec tsc -p electron/tsconfig.json --noEmit
       - name: Build Electron and React
         run: pnpm build
       - name: Package Windows installer

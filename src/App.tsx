@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pin, PinOff, RadioTower } from "lucide-react";
 import Chat from "@/components/Chat";
@@ -6,7 +7,9 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { useUpdater } from "@/hooks/useUpdater";
-import { loadConfig, patchConfig } from "@/lib/config";
+import { loadConfig } from "@/lib/config";
+import { desktop } from "@/lib/desktop";
+import FirstLaunchGuide from "@/components/FirstLaunchGuide";
 import { qk } from "@/lib/queryKeys";
 import { ActiveSessionProvider } from "@/providers/ActiveSessionProvider";
 import { ExplorerReferenceProvider } from "@/providers/ExplorerReferenceProvider";
@@ -20,10 +23,20 @@ function AppInner() {
   useUpdater();
   const queryClient = useQueryClient();
   const { data: config } = useQuery({ queryKey: qk.config, queryFn: loadConfig });
-  const pinned = config?.pinnedToScreen ?? false;
+  const [pinned, setPinned] = useState(false);
+  const [pending, setPending] = useState(false);
+  useEffect(() => { void desktop.getPinnedState().then(setPinned).catch(() => undefined); }, []);
   async function togglePin() {
-    await patchConfig({ pinnedToScreen: !pinned });
-    await queryClient.invalidateQueries({ queryKey: qk.config });
+    if (pending) return;
+    setPending(true);
+    try {
+      const applied = await desktop.setPinnedState(!pinned);
+      setPinned(applied);
+      await queryClient.invalidateQueries({queryKey: qk.config});
+      toast.success(applied ? "Anchr stays above other windows" : "Anchr is no longer pinned");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't change pin setting");
+    } finally { setPending(false); }
   }
   return (
     <main className="flex h-full flex-col overflow-hidden">
@@ -36,7 +49,7 @@ function AppInner() {
             <RadioTower size={12} /> Studio bridge
           </span>
         </div>
-        <button type="button" onClick={() => void togglePin()} title={pinned ? "Unpin from screen" : "Pin to screen (always on top)"}
+        <button type="button" onClick={() => void togglePin()} disabled={pending} title={pinned ? "Unpin from screen" : "Pin to screen (always on top)"}
           aria-label={pinned ? "Unpin from screen" : "Pin to screen"} aria-pressed={pinned}
           className={`app-no-drag inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-colors ${pinned ? "border-sky-500/50 bg-sky-500/15 text-sky-300" : "border-slate-700/70 bg-slate-800/40 text-slate-300 hover:border-sky-500/40 hover:text-white"}`}>
           {pinned ? <Pin size={13} fill="currentColor" /> : <PinOff size={13} />}
@@ -44,6 +57,7 @@ function AppInner() {
         </button>
       </div>
       <ErrorBoundary><Chat /></ErrorBoundary>
+      {config && !config.onboardingCompleted && <FirstLaunchGuide onFinish={async () => { await desktop.patchConfig({onboardingCompleted: true}); await queryClient.invalidateQueries({queryKey: qk.config}); }} />}
       <Toaster />
     </main>
   );

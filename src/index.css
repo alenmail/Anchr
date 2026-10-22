@@ -874,3 +874,15 @@
 @keyframes anchr-signal-spin { to {transform:rotate(360deg)} }
 @keyframes anchr-progress { from{transform:translateX(-120%)}to{transform:translateX(390%)} }
 @media (prefers-reduced-motion: reduce) {.anchr-beacon-orbit,.anchr-startup-progress-indeterminate{animation:none}}
+
+/* Anchr 0.1.2 — quieter interface, calibrated motion */
+.anchr-launch { background:#090e15; }
+.anchr-launch-content { animation: anchr-content-in .6s cubic-bezier(.22,1,.36,1) both; }
+.anchr-launch-logo-wrap { position:relative; padding:8px; border-radius:25px; background:rgba(255,255,255,.025); box-shadow:0 0 0 1px rgba(255,255,255,.075), 0 16px 55px rgba(0,0,0,.27); }
+.anchr-launch-logo { display:block; animation: anchr-logo-breathe 3.4s ease-in-out infinite; }
+.anchr-launch-progress-active { width:35%;height:100%;background:linear-gradient(90deg,transparent,#9bbbd2,transparent);animation:anchr-progress-slide 2.1s cubic-bezier(.55,.1,.45,.9) infinite; }
+.anchr-guide-enter { animation:anchr-content-in .36s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes anchr-content-in { from { opacity:0; transform:translateY(9px) } to {opacity:1;transform:translateY(0)} }
+@keyframes anchr-logo-breathe {0%,100%{filter:brightness(1)}50%{filter:brightness(1.12)}}
+@keyframes anchr-progress-slide { from{transform:translateX(-120%)}to{transform:translateX(360%)} }
+@media(prefers-reduced-motion:reduce) {.anchr-launch-content,.anchr-launch-logo,.anchr-launch-progress-active,.anchr-guide-enter{animation:none}}

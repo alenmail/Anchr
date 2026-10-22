@@ -24,6 +24,7 @@ export const AppConfigSchema = Schema.mutable(
     hiddenModels: MutableStrings,
     theme: ThemePreferenceSchema,
     pinnedToScreen: Schema.Boolean,
+    onboardingCompleted: Schema.Boolean,
     customEndpoint: Schema.NullOr(Schema.Struct({ baseURL: Schema.String, modelId: Schema.String })),
     detailedAnalytics: DetailedAnalyticsPreferenceSchema,
     // Highest analytics policy notice the user has seen; 0 predates the opt-out model.
@@ -40,6 +41,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   hiddenModels: [],
   theme: "dark",
   pinnedToScreen: false,
+  onboardingCompleted: false,
   customEndpoint: null,
   detailedAnalytics: "disabled",
   analyticsNoticeVersion: 2,
@@ -125,6 +127,9 @@ export interface DesktopApi {
   openUrl(url: string): Promise<void>;
   loadConfig(): Promise<AppConfig>;
   patchConfig(patch: Partial<AppConfig>): Promise<void>;
+  getPinnedState(): Promise<boolean>;
+  setPinnedState(pinned: boolean): Promise<boolean>;
+  discoverCompatibleModels(baseURL: string, apiKey: string): Promise<Array<{ id: string; name: string }>>;
   checkForUpdate(): Promise<UpdateInfo | null>;
   installUpdate(): Promise<void>;
   relaunch(): Promise<void>;

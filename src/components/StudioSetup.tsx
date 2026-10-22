@@ -1,3 +1,4 @@
+import anchrLogo from "@/assets/anchr-logo.webp";
 import type { StudioMcpProblem } from "@/hooks/useStudioConnection";
 
 interface StudioSetupProps {
@@ -13,7 +14,7 @@ export default function StudioSetup({ connected, checking, problem, onCheck, onC
     <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-6">
       <section className="w-full max-w-lg overflow-hidden rounded-3xl border border-blue-500/20 bg-card p-8 shadow-xl">
         <div className="flex items-center gap-4">
-          <img src="/anchr-logo.svg" alt="Anchr" className="h-16 w-16 rounded-2xl" />
+          <img src={anchrLogo} alt="Anchr" className="h-16 w-16 rounded-2xl" />
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-400">Anchr Studio • by Stone</div>
             <h1 className="mt-1 text-2xl font-semibold">{connected ? "Studio connected" : "Connect Roblox Studio"}</h1>

@@ -27,6 +27,7 @@ import { createMainErrorReporter } from "./errorReporter";
 import { findInstructionFiles } from "./instructionFiles";
 import { channels } from "./channels";
 import { anchrCompatibleProvider } from "./opencodeConfig";
+import { captureStudioScreen, describeImages, findVisualReferences, saveVisionKey, visionIsConfigured } from "./assistantServices";
 import { makeOpenCodeLayer, OpenCode } from "./services/OpenCode";
 import {
   GeneratedProgramRuntime,
@@ -289,6 +290,20 @@ const registerIpcHandlers = Effect.sync(() => {
     if (applied !== pinned) throw new Error("Windows did not accept the always-on-top setting");
     await runMain(patchConfig({ pinnedToScreen: applied }));
     return applied;
+  });
+  ipcMain.handle(channels.visionConfigured, () => visionIsConfigured());
+  ipcMain.handle(channels.setVisionApiKey, (_event, key: unknown) => {
+    if (typeof key !== "string") throw new Error("Invalid vision API key");
+    return saveVisionKey(key);
+  });
+  ipcMain.handle(channels.describeImages, (_event, images: unknown, context: unknown) => {
+    if (!Array.isArray(images) || typeof context !== "string") throw new Error("Invalid image description");
+    return describeImages(images, context);
+  });
+  ipcMain.handle(channels.captureScreen, () => captureStudioScreen());
+  ipcMain.handle(channels.findVisualReferences, (_event, query: unknown) => {
+    if (typeof query !== "string") throw new Error("Invalid reference query");
+    return findVisualReferences(query);
   });
   ipcMain.handle(channels.discoverCompatibleModels, async (_event, baseURL: unknown, apiKey: unknown) => {
     if (typeof baseURL !== "string" || baseURL.length > 2048 || typeof apiKey !== "string" || apiKey.length > 8192)

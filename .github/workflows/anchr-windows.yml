@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - build/anchr-desktop-and-plugin
-      - fix/anchr-splash-and-studio-toolbar
+      - feature/anchr-v0.1.4-assistant-workflows
 
 permissions:
   contents: write
@@ -63,15 +63,17 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.3-beta
-          name: Anchr v0.1.3 (beta)
+          tag_name: v0.1.4-beta.0
+          name: Anchr v0.1.4 (beta)
           target_commitish: ${{ github.sha }}
           prerelease: true
           generate_release_notes: false
           body: |
-            Anchr v0.1.3 beta for Windows. Borderless Anchr startup mark and fully rebranded Studio toolbar (with optional uploaded Anchr Image asset ID).
+            Anchr v0.1.4 beta for Windows: stream autoscroll, screenshot/vision bridge, visual references, approved prompt rewriting and in-app GitHub update checks.
             This is an unsigned prerelease. Install only if you trust the project.
             Live Roblox Studio integration still requires testing.
           files: |
             release/*.exe
+            release/*.yml
+            release/*.blockmap
             assets/anchr-studio-toolbar.png

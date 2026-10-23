@@ -9,6 +9,7 @@ import type {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown, { type Components } from "react-markdown";
+import anchrMark from "@/assets/anchr-mark.svg";
 import remarkGfm from "remark-gfm";
 import type { HighlightLanguage } from "@/components/SyntaxHighlightedOutput";
 
@@ -210,55 +211,13 @@ const ImageLightbox = memo(function ImageLightbox() {
 
 function BloxBotThinking({ label = "Thinking..." }: { label?: string }) {
   return (
-    <div className="flex min-h-[21px] items-center gap-2 text-[13px] leading-relaxed text-muted-foreground">
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 512 512"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="bloxbot-face-think shrink-0"
-        aria-hidden="true"
-      >
-        <rect
-          x="32"
-          y="32"
-          width="448"
-          height="448"
-          rx="112"
-          fill="currentColor"
-          className="text-foreground"
-        />
-        <rect
-          className="bloxbot-eye"
-          x="144"
-          y="176"
-          width="72"
-          height="72"
-          rx="24"
-          fill="var(--background)"
-        />
-        <rect
-          className="bloxbot-eye"
-          x="296"
-          y="176"
-          width="72"
-          height="72"
-          rx="24"
-          fill="var(--background)"
-        />
-        <path
-          d="M168 328C168 328 204.8 376 256 376C307.2 376 344 328 344 328"
-          stroke="var(--background)"
-          strokeWidth="32"
-          strokeLinecap="round"
-        />
-      </svg>
+    <div className="flex min-h-[23px] items-center gap-2.5 text-[12px] leading-relaxed text-muted-foreground">
+      <img src={anchrMark} alt="" className="h-5 w-5 shrink-0 opacity-90 anchr-thinking-icon" aria-hidden="true" />
       <span>{label}</span>
-      <span className="flex gap-0.5">
-        <span className="bloxbot-dot h-1 w-1 rounded-full bg-foreground/20" />
-        <span className="bloxbot-dot h-1 w-1 rounded-full bg-foreground/20 [animation-delay:150ms]" />
-        <span className="bloxbot-dot h-1 w-1 rounded-full bg-foreground/20 [animation-delay:300ms]" />
+      <span className="flex gap-1" aria-hidden="true">
+        <span className="anchr-thinking-dot h-1 w-1 rounded-full bg-sky-300/60" />
+        <span className="anchr-thinking-dot h-1 w-1 rounded-full bg-sky-300/60 [animation-delay:180ms]" />
+        <span className="anchr-thinking-dot h-1 w-1 rounded-full bg-sky-300/60 [animation-delay:360ms]" />
       </span>
     </div>
   );
@@ -1577,9 +1536,28 @@ function ChatMessages() {
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    shouldAutoScroll.current = distanceFromBottom < 80;
+    // Only abandon follow mode when the user has scrolled upward.
+    // Programmatic scrolls and browser scroll anchoring can otherwise
+    // turn follow mode off during streamed responses.
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distance < 110) shouldAutoScroll.current = true;
   }, []);
+
+  const followBottom = useCallback(() => {
+    const el = containerRef.current;
+    if (!el || !shouldAutoScroll.current) return;
+    el.scrollTop = el.scrollHeight;
+  }, []);
+
+  // Virtualized messages can grow without child nodes changing (streamed text,
+  // code block measurement, lazy media). ResizeObserver plus the periodic
+  // follow while busy is more reliable than a MutationObserver alone.
+  useEffect(() => {
+    if (!isBusy) return;
+    const interval = window.setInterval(followBottom, 90);
+    followBottom();
+    return () => window.clearInterval(interval);
+  }, [isBusy, followBottom]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -1602,18 +1580,19 @@ function ChatMessages() {
       }
     });
     observer.observe(el, { childList: true, subtree: true, characterData: true });
+    const resizeObserver = new ResizeObserver(followBottom);
+    resizeObserver.observe(el.firstElementChild ?? el);
     return () => {
       observer.disconnect();
+      resizeObserver.disconnect();
       cancelAnimationFrame(rafId);
     };
-  }, []);
+  }, [followBottom]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional scroll triggers
   useEffect(() => {
-    if (shouldAutoScroll.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [isBusy, todos, activeQuestion, activePermission]);
+    requestAnimationFrame(followBottom);
+  }, [isBusy, todos, activeQuestion, activePermission, messageIds.length, followBottom]);
 
   const handleAnswer = useCallback(
     (requestID: string, answers: QuestionAnswer[]) => answerQuestion.mutate({ requestID, answers }),
@@ -1653,6 +1632,8 @@ function ChatMessages() {
       ref={containerRef}
       data-chat-scroll
       onScroll={handleScroll}
+      onWheel={(event) => { if (event.deltaY < 0) shouldAutoScroll.current = false; }}
+      onTouchMove={() => { shouldAutoScroll.current = false; }}
       className="app-scrollbar flex-1 overflow-y-auto [overflow-anchor:none]"
     >
       <ImageLightbox />

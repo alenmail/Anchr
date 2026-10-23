@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import ProviderCheckPopover from "@/components/ProviderCheckPopover";
 import CompatibleProviderPanel from "@/components/CompatibleProviderPanel";
+import VisionBridgePanel from "@/components/VisionBridgePanel";
 import ProviderConnectDialog from "@/components/ProviderConnectDialog";
 import ProviderLogo from "@/components/ProviderLogo";
 import { THEME_OPTIONS, type Theme, useTheme } from "@/components/theme-provider";
@@ -22,7 +23,7 @@ import { connectHint, isFreeTier, providerDisplayName } from "@/lib/providerAuth
 import { checkModels, checkPreference, type ProviderCheckResult } from "@/lib/providerCheck";
 import { usePreferences } from "@/providers/PreferencesProvider";
 import type { ModelInfo, ProviderInfo } from "@/types";
-import anchrLogo from "@/assets/anchr-logo.webp";
+import anchrMark from "@/assets/anchr-mark.svg";
 import { useQueryClient } from "@tanstack/react-query";
 import { qk } from "@/lib/queryKeys";
 
@@ -396,6 +397,7 @@ function ProvidersTab() {
       </p>
 
       <CompatibleProviderPanel />
+      <VisionBridgePanel />
 
       {allProviders.length > 0 && (
         <div className="relative mt-5">
@@ -897,6 +899,25 @@ function PrivacyDetails() {
 
 function AboutTab({ appVersion }: { appVersion: string | null }) {
   const queryClient = useQueryClient();
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
+  const [latestUpdate, setLatestUpdate] = useState<string | null>(null);
+  const [updateMessage, setUpdateMessage] = useState("");
+  async function checkUpdates() {
+    setCheckingUpdate(true);
+    setUpdateMessage("");
+    try {
+      const next = await desktop.checkForUpdate();
+      if (next) { setLatestUpdate(next.version); setUpdateMessage(`Anchr ${next.version} is ready to install.`); }
+      else { setLatestUpdate(null); setUpdateMessage("You're already on the latest available Anchr release."); }
+    } catch (cause) { setUpdateMessage(cause instanceof Error ? cause.message : "Couldn't check GitHub Releases."); }
+    finally { setCheckingUpdate(false); }
+  }
+  async function installNow() {
+    setInstallingUpdate(true);
+    try { await desktop.installUpdate(); setUpdateMessage("Update downloaded. Anchr is restarting…"); }
+    catch (cause) { setUpdateMessage(cause instanceof Error ? cause.message : "Update installation failed."); setInstallingUpdate(false); }
+  }
   const features = [
     { name: "Explore", description: "Understand what's in your place and find objects quickly.", mark: "01" },
     { name: "Create", description: "Turn ideas into scripts and systems that live in Studio.", mark: "02" },
@@ -909,7 +930,7 @@ function AboutTab({ appVersion }: { appVersion: string | null }) {
   }
   return <div className="mx-auto w-full max-w-md px-5 py-8 @xl:px-7">
     <div className="flex items-center gap-4">
-      <img src={anchrLogo} alt="Anchr" className="h-14 w-14 rounded-[16px]" />
+      <img src={anchrMark} alt="Anchr" className="h-[62px] w-[62px] object-contain" />
       <div>
         <h4 className="font-display text-[23px] font-semibold tracking-[-.035em]">Anchr</h4>
         <p className="mt-1 text-[11px] text-muted-foreground">Your workspace for building in Roblox Studio.</p>
@@ -920,6 +941,16 @@ function AboutTab({ appVersion }: { appVersion: string | null }) {
       <div className="mt-3 h-px bg-white/10"/>
       <div className="mt-3 flex items-center justify-between"><span className="text-[11px] text-muted-foreground">Platform</span><span className="text-[11px] font-medium">Roblox Studio companion</span></div>
     </div>
+    <section className="mt-4 rounded-xl border border-white/10 bg-white/[.025] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div><p className="text-xs font-semibold">App updates</p><p className="mt-1 text-[11px] text-muted-foreground">Check official Anchr releases on GitHub.</p></div>
+        <button type="button" disabled={checkingUpdate||installingUpdate} onClick={()=>void checkUpdates()} className="shrink-0 rounded-lg border px-3 py-2 text-[11px] font-medium disabled:opacity-50">
+          {checkingUpdate ? "Checking…" : "Check for updates"}
+        </button>
+      </div>
+      {updateMessage && <p role="status" className="mt-3 text-[11px] text-slate-300">{updateMessage}</p>}
+      {latestUpdate && <button type="button" disabled={installingUpdate} onClick={()=>void installNow()} className="mt-3 rounded-lg bg-sky-500 px-4 py-2 text-[11px] font-semibold text-slate-950 disabled:opacity-50">{installingUpdate ? "Downloading…" : "Install and restart"}</button>}
+    </section>
     <p className="mt-8 text-[10px] font-semibold uppercase tracking-[.18em] text-slate-500">What you can do</p>
     <div className="mt-3 divide-y divide-white/[.07] rounded-xl border border-white/10 bg-white/[.025] px-4">
       {features.map(feature=><div key={feature.mark} className="flex items-start gap-3 py-3.5">

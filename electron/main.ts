@@ -27,6 +27,7 @@ import { createMainErrorReporter } from "./errorReporter";
 import { findInstructionFiles } from "./instructionFiles";
 import { channels } from "./channels";
 import { anchrCompatibleProvider } from "./opencodeConfig";
+import { captureStudioScreen, describeImages, findVisualReferences, saveVisionKey, visionIsConfigured } from "./assistantServices";
 import { makeOpenCodeLayer, OpenCode } from "./services/OpenCode";
 import {
   GeneratedProgramRuntime,
@@ -290,6 +291,20 @@ const registerIpcHandlers = Effect.sync(() => {
     await runMain(patchConfig({ pinnedToScreen: applied }));
     return applied;
   });
+  ipcMain.handle(channels.visionConfigured, () => visionIsConfigured());
+  ipcMain.handle(channels.setVisionApiKey, (_event, key: unknown) => {
+    if (typeof key !== "string") throw new Error("Invalid vision API key");
+    return saveVisionKey(key);
+  });
+  ipcMain.handle(channels.describeImages, (_event, images: unknown, context: unknown) => {
+    if (!Array.isArray(images) || typeof context !== "string") throw new Error("Invalid image description");
+    return describeImages(images, context);
+  });
+  ipcMain.handle(channels.captureScreen, () => captureStudioScreen());
+  ipcMain.handle(channels.findVisualReferences, (_event, query: unknown) => {
+    if (typeof query !== "string") throw new Error("Invalid reference query");
+    return findVisualReferences(query);
+  });
   ipcMain.handle(channels.discoverCompatibleModels, async (_event, baseURL: unknown, apiKey: unknown) => {
     if (typeof baseURL !== "string" || baseURL.length > 2048 || typeof apiKey !== "string" || apiKey.length > 8192)
       throw new Error("Invalid endpoint details");
@@ -378,8 +393,26 @@ const registerIpcHandlers = Effect.sync(() => {
       ),
     ),
   );
-  ipcMain.handle(channels.checkForUpdate, () => Promise.resolve(null));
-  ipcMain.handle(channels.installUpdate, () => Promise.reject(new Error("Anchr updates are not yet configured")));
+  ipcMain.handle(channels.checkForUpdate, async () => {
+    if (!app.isPackaged) return null;
+    autoUpdater.allowPrerelease = true;
+    autoUpdater.channel = "beta";
+    const result = await autoUpdater.checkForUpdates();
+    if (!result || result.updateInfo.version === app.getVersion()) return null;
+    const notes = result.updateInfo.releaseNotes;
+    const body = typeof notes === "string" ? notes : Array.isArray(notes) ?
+      notes.map(entry => entry.note ?? "").join("\n") : null;
+    return { version: result.updateInfo.version, body };
+  });
+  ipcMain.handle(channels.installUpdate, async () => {
+    if (!app.isPackaged) throw new Error("Updates require an installed release");
+    autoUpdater.allowPrerelease = true;
+    autoUpdater.channel = "beta";
+    const check = await autoUpdater.checkForUpdates();
+    if (!check || check.updateInfo.version === app.getVersion()) throw new Error("No newer Anchr version is available");
+    await autoUpdater.downloadUpdate();
+    setImmediate(() => autoUpdater.quitAndInstall(false, true));
+  });
   ipcMain.handle(
     channels.invokeExplorerProgram,
     (_event, input: unknown, studioIdInput: unknown) =>

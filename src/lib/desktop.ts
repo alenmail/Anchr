@@ -64,6 +64,11 @@ interface DesktopEffects {
   readonly getPinnedState: Effect.Effect<boolean, DesktopError>;
   readonly setPinnedState: (pinned: boolean) => Effect.Effect<boolean, DesktopError>;
   readonly discoverCompatibleModels: (url: string, key: string) => Effect.Effect<Array<{id: string; name: string}>, DesktopError>;
+  readonly visionConfigured: Effect.Effect<boolean, DesktopError>;
+  readonly setVisionApiKey: (key: string) => Effect.Effect<boolean, DesktopError>;
+  readonly describeImages: (images: {mime:string;dataUrl:string}[], context:string) => Effect.Effect<string, DesktopError>;
+  readonly captureScreen: Effect.Effect<{mime:string;dataUrl:string},DesktopError>;
+  readonly findVisualReferences: (query:string) => Effect.Effect<Array<{title:string;url:string;imageUrl?:string;description?:string}>,DesktopError>;
   readonly checkForUpdate: Effect.Effect<UpdateInfo | null, DesktopError>;
   readonly installUpdate: Effect.Effect<void, DesktopError>;
   readonly relaunch: Effect.Effect<void, DesktopError>;
@@ -134,6 +139,11 @@ const browserEffects: DesktopEffects = {
           new DesktopError({ message: "Failed to save browser configuration", cause }),
       });
     }),
+  visionConfigured: Effect.succeed(false),
+  setVisionApiKey: (_key) => Effect.fail(new DesktopError({message:"Vision setup requires the Anchr desktop app."})),
+  describeImages: (_images, _context) => Effect.fail(new DesktopError({message:"Vision requires the Anchr desktop app."})),
+  captureScreen: Effect.fail(new DesktopError({message:"Screen capture requires the desktop app."})),
+  findVisualReferences: (_query) => Effect.fail(new DesktopError({message:"Web references require the Anchr desktop app."})),
   checkForUpdate: Effect.succeed(null),
   installUpdate: Effect.fail(
     new DesktopError({ message: "Updates are only available in the desktop app." }),
@@ -208,6 +218,11 @@ function makeBridgeEffects(api: DesktopApi): DesktopEffects {
       decodeBridgeValue("Desktop configuration is invalid", AppConfigSchema),
     ),
     patchConfig: (patch) => invoke("Failed to save configuration", () => api.patchConfig(patch)),
+    visionConfigured: invoke("Failed to read vision settings", () => api.visionConfigured()),
+    setVisionApiKey: (key) => invoke("Failed to save vision key", () => api.setVisionApiKey(key)),
+    describeImages: (images, context) => invoke("Image analysis failed", () => api.describeImages(images,context)),
+    captureScreen: invoke("Screenshot failed", () => api.captureScreen()),
+    findVisualReferences: (query) => invoke("Web reference search failed", () => api.findVisualReferences(query)),
     checkForUpdate: invoke("Failed to check for updates", () => api.checkForUpdate()).pipe(
       decodeBridgeValue("Update information is invalid", Schema.NullOr(UpdateInfoSchema)),
     ),
@@ -266,6 +281,11 @@ export const desktop: DesktopApi = {
   openUrl: (url) => runPromise(desktopEffects.openUrl(url)),
   loadConfig: () => runPromise(desktopEffects.loadConfig),
   patchConfig: (patch) => runPromise(desktopEffects.patchConfig(patch)),
+  visionConfigured: () => runPromise(desktopEffects.visionConfigured),
+  setVisionApiKey: (key) => runPromise(desktopEffects.setVisionApiKey(key)),
+  describeImages: (images, context) => runPromise(desktopEffects.describeImages(images, context)),
+  captureScreen: () => runPromise(desktopEffects.captureScreen),
+  findVisualReferences: (query) => runPromise(desktopEffects.findVisualReferences(query)),
   checkForUpdate: () => runPromise(desktopEffects.checkForUpdate),
   installUpdate: () => runPromise(desktopEffects.installUpdate),
   invokeExplorerProgram: (artifact, studioId) =>

@@ -109,6 +109,32 @@ export async function findVisualReferences(input: string): Promise<WebReference[
   if (typeof input !== "string" || !input.trim() || input.length > 250)
     throw new Error("Use a short visual reference search");
   const term = input.trim();
+  const results: WebReference[] = [];
+  // Openverse indexes openly-licensed visual references across providers;
+  // it has a documented free anonymous search API with its own rate limits.
+  try {
+    const openverse = new URL("https://api.openverse.org/v1/images/");
+    openverse.searchParams.set("q", term.slice(0, 180));
+    openverse.searchParams.set("page_size", "6");
+    const response = await jsonFrom(openverse.toString());
+    const found = Array.isArray(response.results) ? response.results : [];
+    for (const item of found) {
+      const target = typeof item.foreign_landing_url === "string" ? item.foreign_landing_url : "";
+      if (!target || !target.startsWith("https://")) continue;
+      const id = typeof item.id === "string" && /^[a-z0-9-]{8,64}$/i.test(item.id) ? item.id : "";
+      const imageUrl = id ? `https://api.openverse.org/v1/images/${id}/thumb/?compressed=true` : undefined;
+      const credit = [item.creator, item.license].filter((value): value is string => typeof value === "string").join(" · ");
+      results.push({
+        title: String(item.title ?? "Reference").slice(0, 160),
+        url: target,
+        ...(imageUrl ? { imageUrl } : {}),
+        description: credit ? `Attribution/license: ${credit.slice(0,120)}` : undefined,
+      });
+    }
+  } catch (error) {
+    console.warn("[Anchr] Openverse reference lookup unavailable; checking Commons:", error);
+  }
+  if (results.length >= 6) return results.slice(0, 6);
   const url = new URL("https://commons.wikimedia.org/w/api.php");
   for (const [key, value] of Object.entries({
     action: "query", generator: "search", gsrsearch: term,
@@ -117,7 +143,6 @@ export async function findVisualReferences(input: string): Promise<WebReference[
   })) url.searchParams.set(key, value);
   const data = await jsonFrom(url.toString());
   const pages = (data.query?.pages ?? []) as any[];
-  const results: WebReference[] = [];
   for (const page of pages) {
     const image = page.imageinfo?.[0];
     if (!image?.descriptionurl || typeof image.descriptionurl !== "string") continue;
@@ -141,12 +166,14 @@ export async function findVisualReferences(input: string): Promise<WebReference[
       if (!ref.imageUrl) return null;
       try {
         const parsed = new URL(ref.imageUrl);
-        if (parsed.protocol !== "https:" || !parsed.hostname.endsWith(".wikimedia.org")) return null;
+        if (parsed.protocol !== "https:" || !(
+          parsed.hostname.endsWith(".wikimedia.org") || parsed.hostname === "api.openverse.org")) return null;
         const response = await fetch(parsed.toString(), { signal: AbortSignal.timeout(9000) });
         const mime = (response.headers.get("content-type") ?? "").split(";")[0].trim();
         if (!response.ok || !SUPPORTED.has(mime) || Number(response.headers.get("content-length") ?? 0) > 3_000_000)
           return null;
-        if (!new URL(response.url).hostname.endsWith(".wikimedia.org")) return null;
+        const finalHost = new URL(response.url).hostname;
+        if (!(finalHost.endsWith(".wikimedia.org") || finalHost === "api.openverse.org")) return null;
         const image = Buffer.from(await response.arrayBuffer());
         if (image.length > 3_000_000) return null;
         return { mime, dataUrl: `data:${mime};base64,${image.toString("base64")}` };
@@ -157,7 +184,7 @@ export async function findVisualReferences(input: string): Promise<WebReference[
       try {
         const summary = await describeImages(available,
           `Describe the visual appearance of these public Commons search results for: ${term}. Describe only what you actually see; do not infer copyrighted character traits or copy assets.`);
-        chosen[0].description = `Visual observations from ${available.length} Wikimedia images: ${summary.slice(0,2400)}`;
+        chosen[0].description = `Visual observations from ${available.length} openly-licensed search images: ${summary.slice(0,2400)}`;
       } catch (error) {
         console.warn("[Anchr] Visual reference image interpretation unavailable:", error);
       }

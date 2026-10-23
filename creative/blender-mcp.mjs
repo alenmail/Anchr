@@ -32,6 +32,7 @@ const definitions = [
  {name:"blender_status",description:"Check the bundled local Blender runtime and output folder. No paid API.",inputSchema:{type:"object",properties:{}}},
  {name:"blender_generate_model",description:"Generate a deterministic Blender model, material variant, PNG preview, GLB export, and native .blend file. Works locally and is more capable than Roblox primitives, but procedural quality cannot match trained text-to-3D services. Uses a constrained plan. Animations are simple articulated keyframes, not motion-captured or Roblox R15-compatible by default.",inputSchema},
  {name:"blender_generate_animation",description:"Generate a simple idle/walk/run/attack animated version of a humanoid/creature model; exports an animated GLB with basic pivot animation. Requires rig review and Roblox retargeting for R15.",inputSchema:{...inputSchema,required:["name","animation"]}},
+ {name:"blender_refine_model",description:"Refine a previously generated Blender model using a new description, palette or animation. Keeps the prior archetype and style, creates another preview and GLB for human review.",inputSchema:{type:"object",properties:{folder:{type:"string"},concept:{type:"string"},animation:{type:"string",enum:["none","idle","walk","run","attack"]},palette:{type:"array",items:{type:"string"}}},required:["folder","concept"]}},
  {name:"blender_list_outputs",description:"List the last 15 Anchr-generated mesh job folders, so the user can review previews and import GLB using Roblox Studio's 3D Importer.",inputSchema:{type:"object",properties:{}}}
 ];
 
@@ -77,6 +78,12 @@ async function handleTool(request){
      const plan=validate(args);
      if(name==="blender_generate_animation"&&(!args?.animation||args.animation==="none"))throw Error("Choose idle, walk, run or attack");
      return safeText(await runBlender(plan));
+   }
+   if(name==="blender_refine_model"){
+     const folder=resolve(String(args?.folder||""));
+     if(!folder.startsWith(outputs+"\\")&&!folder.startsWith(outputs+"/"))throw Error("Only Anchr-generated jobs can be refined");
+     const existing=JSON.parse(await readFile(join(folder,"spec.json"),"utf8"));
+     return safeText(await runBlender(validate({...existing,concept:typeof args.concept==="string"?args.concept.slice(0,500):existing.concept,animation:args.animation||existing.animation,palette:args.palette||existing.palette})));
    }
    if(name==="blender_list_outputs"){
      const dirs=(await readdir(outputs,{withFileTypes:true})).filter(d=>d.isDirectory()&&d.name.startsWith("model-"));

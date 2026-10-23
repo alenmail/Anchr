@@ -14,6 +14,7 @@ export default function CreativeToolsPanel(){
   const [style,setStyle]=useState<"stylized"|"realistic"|"lowpoly">("stylized");
   const [animation,setAnimation]=useState<"none"|"idle"|"walk"|"run"|"attack">("idle");
   const [modelBusy,setModelBusy]=useState(false);
+  const [refinement,setRefinement]=useState("");
   const [modelOutput,setModelOutput]=useState<{preview:string;model:string;native:string;report:{objects:number}}|null>(null);
   const [figmaActive,setFigmaActive]=useState(false);
   const [figmaKey,setFigmaKey]=useState("");
@@ -96,6 +97,10 @@ export default function CreativeToolsPanel(){
         <p className="font-semibold text-emerald-300">{modelOutput.report.objects} Blender objects exported</p>
         <div className="flex flex-wrap gap-2"><button className={btn} type="button" onClick={()=>void desktop.openCreativeFile(modelOutput.preview)}><Image size={13}/> Open preview</button>
           <button className={btn} type="button" onClick={()=>void desktop.openCreativeFile(modelOutput.model)}>Open GLB</button></div>
+        <label className="block text-[11px]">Refinement notes
+          <input className={inp} placeholder="E.g. taller body, narrow shoulders, longer arms" value={refinement} onChange={e=>setRefinement(e.target.value)} maxLength={300}/>
+        </label>
+        <button type="button" className={btn} disabled={modelBusy||!refinement.trim()} onClick={()=>{setConcept(refinement);setMessage("Refinement added to the design. Click Generate and export model to create a revised GLB.");}}>Use refinement in next version</button>
         <p className="text-[10px] text-muted-foreground">Use Roblox Studio's File → Import 3D for the GLB. Rigging and animation retargeting may need manual adjustment.</p>
       </div>}
     </section>

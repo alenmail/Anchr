@@ -65,6 +65,9 @@ interface DesktopEffects {
   readonly setPinnedState: (pinned: boolean) => Effect.Effect<boolean, DesktopError>;
   readonly discoverCompatibleModels: (url: string, key: string) => Effect.Effect<Array<{id: string; name: string}>, DesktopError>;
   readonly visionConfigured: Effect.Effect<boolean, DesktopError>;
+  readonly listVisionModels: Effect.Effect<Array<{ id: string; label: string }>, DesktopError>;
+  readonly getVisionModel: Effect.Effect<string, DesktopError>;
+  readonly setVisionModel: (id: string) => Effect.Effect<string, DesktopError>;
   readonly setVisionApiKey: (key: string) => Effect.Effect<boolean, DesktopError>;
   readonly describeImages: (images: {mime:string;dataUrl:string}[], context:string) => Effect.Effect<string, DesktopError>;
   readonly captureScreen: Effect.Effect<{mime:string;dataUrl:string},DesktopError>;
@@ -140,6 +143,9 @@ const browserEffects: DesktopEffects = {
       });
     }),
   visionConfigured: Effect.succeed(false),
+  listVisionModels: Effect.fail(new DesktopError({ message: "Model discovery requires the Anchr desktop app." })),
+  getVisionModel: Effect.succeed("gemini-3.5-flash-lite"),
+  setVisionModel: (_id) => Effect.fail(new DesktopError({ message: "Model selection requires the Anchr desktop app." })),
   setVisionApiKey: (_key) => Effect.fail(new DesktopError({message:"Vision setup requires the Anchr desktop app."})),
   describeImages: (_images, _context) => Effect.fail(new DesktopError({message:"Vision requires the Anchr desktop app."})),
   captureScreen: Effect.fail(new DesktopError({message:"Screen capture requires the desktop app."})),
@@ -219,6 +225,9 @@ function makeBridgeEffects(api: DesktopApi): DesktopEffects {
     ),
     patchConfig: (patch) => invoke("Failed to save configuration", () => api.patchConfig(patch)),
     visionConfigured: invoke("Failed to read vision settings", () => api.visionConfigured()),
+    listVisionModels: invoke("Failed to load Gemini vision models", () => api.listVisionModels()),
+    getVisionModel: invoke("Failed to read selected vision model", () => api.getVisionModel()),
+    setVisionModel: (id) => invoke("Failed to select Gemini vision model", () => api.setVisionModel(id)),
     setVisionApiKey: (key) => invoke("Failed to save vision key", () => api.setVisionApiKey(key)),
     describeImages: (images, context) => invoke("Image analysis failed", () => api.describeImages(images,context)),
     captureScreen: invoke("Screenshot failed", () => api.captureScreen()),
@@ -282,6 +291,9 @@ export const desktop: DesktopApi = {
   loadConfig: () => runPromise(desktopEffects.loadConfig),
   patchConfig: (patch) => runPromise(desktopEffects.patchConfig(patch)),
   visionConfigured: () => runPromise(desktopEffects.visionConfigured),
+  listVisionModels: () => runPromise(desktopEffects.listVisionModels),
+  getVisionModel: () => runPromise(desktopEffects.getVisionModel),
+  setVisionModel: (id) => runPromise(desktopEffects.setVisionModel(id)),
   setVisionApiKey: (key) => runPromise(desktopEffects.setVisionApiKey(key)),
   describeImages: (images, context) => runPromise(desktopEffects.describeImages(images, context)),
   captureScreen: () => runPromise(desktopEffects.captureScreen),

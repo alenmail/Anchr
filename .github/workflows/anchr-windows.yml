@@ -51,6 +51,11 @@ jobs:
         run: pnpm build
       - name: Package Windows installer
         run: pnpm exec electron-builder --win nsis --publish never
+      - name: Verify beta auto-update manifest
+        shell: pwsh
+        run: |
+          if (!(Test-Path "release/beta.yml")) { throw "Missing beta.yml — in-app updates would fail" }
+          if (!(Test-Path "release/*.exe.blockmap")) { throw "Missing differential update blockmap" }
       - name: Upload Anchr installer
         uses: actions/upload-artifact@v4
         with:
@@ -63,7 +68,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.4-beta.0
+          tag_name: v0.1.4-beta.1
           name: Anchr v0.1.4 (beta)
           target_commitish: ${{ github.sha }}
           prerelease: true
@@ -74,6 +79,7 @@ jobs:
             Live Roblox Studio integration still requires testing.
           files: |
             release/*.exe
-            release/*.yml
-            release/*.blockmap
+            release/beta.yml
+            release/latest.yml
+            release/*.exe.blockmap
             assets/anchr-studio-toolbar.png

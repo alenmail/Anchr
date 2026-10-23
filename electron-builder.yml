@@ -33,6 +33,7 @@ publish:
   owner: alenmail
   repo: Anchr
   releaseType: prerelease
+  channel: beta
 generateUpdatesFilesForAllChannels: true
 extraResources:
   - from: vendor/anchr-mcp/node_modules

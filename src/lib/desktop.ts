@@ -64,6 +64,15 @@ interface DesktopEffects {
   readonly getPinnedState: Effect.Effect<boolean, DesktopError>;
   readonly setPinnedState: (pinned: boolean) => Effect.Effect<boolean, DesktopError>;
   readonly discoverCompatibleModels: (url: string, key: string) => Effect.Effect<Array<{id: string; name: string}>, DesktopError>;
+  readonly blenderStatus: Effect.Effect<Awaited<ReturnType<DesktopApi["blenderStatus"]>>, DesktopError>;
+  readonly blenderCreateModel: (plan: Parameters<DesktopApi["blenderCreateModel"]>[0]) => Effect.Effect<Awaited<ReturnType<DesktopApi["blenderCreateModel"]>>, DesktopError>;
+  readonly openCreativeFile: (path: string) => Effect.Effect<void, DesktopError>;
+  readonly openIconFolder: Effect.Effect<void, DesktopError>;
+  readonly figmaConfigured: Effect.Effect<boolean, DesktopError>;
+  readonly setFigmaToken: (token: string) => Effect.Effect<boolean, DesktopError>;
+  readonly figmaFrames: (url: string) => Effect.Effect<Awaited<ReturnType<DesktopApi["figmaFrames"]>>, DesktopError>;
+  readonly figmaGenerateUi: (url: string, id: string) => Effect.Effect<Awaited<ReturnType<DesktopApi["figmaGenerateUi"]>>, DesktopError>;
+  readonly figmaApplyUi: (source: string) => Effect.Effect<unknown, DesktopError>;
   readonly visionConfigured: Effect.Effect<boolean, DesktopError>;
   readonly listVisionModels: Effect.Effect<Array<{ id: string; label: string }>, DesktopError>;
   readonly getVisionModel: Effect.Effect<string, DesktopError>;
@@ -142,6 +151,15 @@ const browserEffects: DesktopEffects = {
           new DesktopError({ message: "Failed to save browser configuration", cause }),
       });
     }),
+  blenderStatus: Effect.succeed({available:false,runtimeBundled:false,engine:"Blender (desktop only)",outputDirectory:""}),
+  blenderCreateModel: (_plan) => Effect.fail(new DesktopError({message:"Local Blender requires the desktop app."})),
+  openCreativeFile: (_path) => Effect.fail(new DesktopError({message:"Requires desktop."})),
+  openIconFolder: Effect.fail(new DesktopError({message:"Requires desktop."})),
+  figmaConfigured: Effect.succeed(false),
+  setFigmaToken: (_token) => Effect.fail(new DesktopError({message:"Figma requires desktop."})),
+  figmaFrames: (_url) => Effect.fail(new DesktopError({message:"Figma requires desktop."})),
+  figmaGenerateUi: (_url, _id) => Effect.fail(new DesktopError({message:"Figma requires desktop."})),
+  figmaApplyUi: (_source) => Effect.fail(new DesktopError({message:"Studio requires desktop."})),
   visionConfigured: Effect.succeed(false),
   listVisionModels: Effect.fail(new DesktopError({ message: "Model discovery requires the Anchr desktop app." })),
   getVisionModel: Effect.succeed("gemini-3.5-flash-lite"),
@@ -224,6 +242,15 @@ function makeBridgeEffects(api: DesktopApi): DesktopEffects {
       decodeBridgeValue("Desktop configuration is invalid", AppConfigSchema),
     ),
     patchConfig: (patch) => invoke("Failed to save configuration", () => api.patchConfig(patch)),
+    blenderStatus: invoke("Failed to check Blender runtime", () => api.blenderStatus()),
+    blenderCreateModel: (plan) => invoke("Failed to generate Blender model", () => api.blenderCreateModel(plan)),
+    openCreativeFile: (path) => invoke("Failed to open creative file", () => api.openCreativeFile(path)),
+    openIconFolder: invoke("Failed to open bundled icons", () => api.openIconFolder()),
+    figmaConfigured: invoke("Failed to read Figma connection", () => api.figmaConfigured()),
+    setFigmaToken: (token) => invoke("Failed to save Figma token", () => api.setFigmaToken(token)),
+    figmaFrames: (url) => invoke("Failed to load Figma frames", () => api.figmaFrames(url)),
+    figmaGenerateUi: (url, id) => invoke("Failed to import Figma frame", () => api.figmaGenerateUi(url, id)),
+    figmaApplyUi: (source) => invoke("Failed to apply UI to Studio", () => api.figmaApplyUi(source)),
     visionConfigured: invoke("Failed to read vision settings", () => api.visionConfigured()),
     listVisionModels: invoke("Failed to load Gemini vision models", () => api.listVisionModels()),
     getVisionModel: invoke("Failed to read selected vision model", () => api.getVisionModel()),
@@ -290,6 +317,15 @@ export const desktop: DesktopApi = {
   openUrl: (url) => runPromise(desktopEffects.openUrl(url)),
   loadConfig: () => runPromise(desktopEffects.loadConfig),
   patchConfig: (patch) => runPromise(desktopEffects.patchConfig(patch)),
+  blenderStatus: () => runPromise(desktopEffects.blenderStatus),
+  blenderCreateModel: (plan) => runPromise(desktopEffects.blenderCreateModel(plan)),
+  openCreativeFile: (path) => runPromise(desktopEffects.openCreativeFile(path)),
+  openIconFolder: () => runPromise(desktopEffects.openIconFolder),
+  figmaConfigured: () => runPromise(desktopEffects.figmaConfigured),
+  setFigmaToken: (token) => runPromise(desktopEffects.setFigmaToken(token)),
+  figmaFrames: (url) => runPromise(desktopEffects.figmaFrames(url)),
+  figmaGenerateUi: (url, id) => runPromise(desktopEffects.figmaGenerateUi(url, id)),
+  figmaApplyUi: (source) => runPromise(desktopEffects.figmaApplyUi(source)),
   visionConfigured: () => runPromise(desktopEffects.visionConfigured),
   listVisionModels: () => runPromise(desktopEffects.listVisionModels),
   getVisionModel: () => runPromise(desktopEffects.getVisionModel),

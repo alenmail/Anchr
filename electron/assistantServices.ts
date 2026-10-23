@@ -1,4 +1,4 @@
-import { app, desktopCapturer, safeStorage } from "electron";
+import { app, BrowserWindow, desktopCapturer, safeStorage, screen } from "electron";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -76,11 +76,25 @@ export async function describeImages(images: ImageForVision[], context: string):
 }
 
 export async function captureStudioScreen(): Promise<ImageForVision> {
-  // Only invoked directly by user clicking the Screenshot control.
-  const screens = await desktopCapturer.getSources({ types: ["screen"], thumbnailSize: { width: 1600, height: 900 } });
-  const first = screens.find((screen) => !screen.thumbnail.isEmpty());
-  if (!first) throw new Error("No desktop screen could be captured");
-  return { mime: "image/png", dataUrl: first.thumbnail.toDataURL() };
+  // Only invoked when the user explicitly chooses Capture screenshot.
+  // Temporarily hide Anchr so the capture shows Roblox Studio underneath.
+  const window = BrowserWindow.getFocusedWindow();
+  const displayId = window ? String(screen.getDisplayMatching(window.getBounds()).id) : undefined;
+  const wasVisible = Boolean(window?.isVisible());
+  if (wasVisible) window?.hide();
+  try {
+    await new Promise(resolve => setTimeout(resolve, 220));
+    const screens = await desktopCapturer.getSources({ types: ["screen"], thumbnailSize: { width: 1600, height: 900 } });
+    const selected = screens.find(item => item.display_id === displayId && !item.thumbnail.isEmpty()) ??
+      screens.find(item => !item.thumbnail.isEmpty());
+    if (!selected) throw new Error("No desktop screen could be captured");
+    return { mime: "image/png", dataUrl: selected.thumbnail.toDataURL() };
+  } finally {
+    if (wasVisible && window && !window.isDestroyed()) {
+      window.show();
+      window.focus();
+    }
+  }
 }
 
 async function jsonFrom(url: string): Promise<any> {

@@ -22,7 +22,7 @@ import { connectHint, isFreeTier, providerDisplayName } from "@/lib/providerAuth
 import { checkModels, checkPreference, type ProviderCheckResult } from "@/lib/providerCheck";
 import { usePreferences } from "@/providers/PreferencesProvider";
 import type { ModelInfo, ProviderInfo } from "@/types";
-import anchrLogo from "@/assets/anchr-logo.webp";
+import anchrMark from "@/assets/anchr-mark.svg";
 import { useQueryClient } from "@tanstack/react-query";
 import { qk } from "@/lib/queryKeys";
 
@@ -909,7 +909,7 @@ function AboutTab({ appVersion }: { appVersion: string | null }) {
   }
   return <div className="mx-auto w-full max-w-md px-5 py-8 @xl:px-7">
     <div className="flex items-center gap-4">
-      <img src={anchrLogo} alt="Anchr" className="h-14 w-14 rounded-[16px]" />
+      <img src={anchrMark} alt="Anchr" className="h-[62px] w-[62px] object-contain" />
       <div>
         <h4 className="font-display text-[23px] font-semibold tracking-[-.035em]">Anchr</h4>
         <p className="mt-1 text-[11px] text-muted-foreground">Your workspace for building in Roblox Studio.</p>

@@ -885,3 +885,10 @@
 @keyframes anchr-logo-breathe {0%,100%{opacity:.93}50%{opacity:1}}
 @keyframes anchr-progress-slide { from{transform:translateX(-120%)}to{transform:translateX(360%)} }
 @media(prefers-reduced-motion:reduce) {.anchr-launch-content,.anchr-launch-mark,.anchr-launch-progress-active,.anchr-guide-enter{animation:none}}
+
+/* Anchr streaming marker (distinct from BloxBot) */
+.anchr-thinking-icon { animation: anchr-mark-pulse 2.8s ease-in-out infinite; }
+.anchr-thinking-dot { animation: anchr-dot-pulse 1.25s ease-in-out infinite; }
+@keyframes anchr-mark-pulse { 0%, 100% { opacity:.65; } 50% { opacity:1; } }
+@keyframes anchr-dot-pulse { 0%, 70%, 100% { opacity:.2; } 35% { opacity:.95; } }
+@media (prefers-reduced-motion: reduce) { .anchr-thinking-icon,.anchr-thinking-dot { animation:none; } }

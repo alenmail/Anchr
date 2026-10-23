@@ -267,6 +267,7 @@ function ChatInput() {
   const [lbSlideDir, setLbSlideDir] = useState<"left" | "right" | null>(null);
   const [lbAnimKey, setLbAnimKey] = useState(0);
   const [showAgentPicker, setShowAgentPicker] = useState(false);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [rejectShake, setRejectShake] = useState(false);
   const promptEditorRef = useRef<PromptEditorHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -759,11 +760,12 @@ function ChatInput() {
                 className={`flex h-7 w-7 items-center justify-center rounded-lg border ${useWebReferences ? "border-sky-500/35 text-sky-300" : "border-border text-muted-foreground"}`}>
                 <Globe2 size={14}/>
               </button>
-              <button type="button" onClick={() => void captureScreenshot()} title="Capture a screenshot (review before sending)" className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-sky-300">
-                <Camera size={14}/>
-              </button>
+              <div className="relative">
               <button
-                onClick={() => fileInputRef.current?.click()}
+                type="button"
+                onClick={() => setShowAttachmentMenu(value => !value)}
+                aria-expanded={showAttachmentMenu}
+                title="Attach image or capture screenshot"
                 className={`flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-background transition-colors hover:bg-accent hover:text-foreground ${rejectShake ? "animate-reject-shake text-red-500" : "text-muted-foreground/60"}`}
                 title="Attach images"
               >
@@ -780,6 +782,16 @@ function ChatInput() {
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
                 </svg>
               </button>
+              {showAttachmentMenu && <div className="absolute bottom-full right-0 z-40 mb-2 w-48 rounded-xl border border-white/10 bg-popover p-1.5 shadow-xl">
+                <button type="button" onClick={() => { setShowAttachmentMenu(false); void captureScreenshot(); }} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[11px] hover:bg-accent">
+                  <Camera size={14}/> Capture screenshot
+                </button>
+                <button type="button" onClick={() => { setShowAttachmentMenu(false); fileInputRef.current?.click(); }} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[11px] hover:bg-accent">
+                  <span className="text-base leading-none">+</span> Choose image files
+                </button>
+                <p className="border-t border-white/10 px-2 py-2 text-[10px] leading-relaxed text-muted-foreground">You can also paste screenshots or drag images into Anchr.</p>
+              </div>}
+              </div>
               <SendButton
                 text={text}
                 hasAttachments={attachments.length > 0}

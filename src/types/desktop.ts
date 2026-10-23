@@ -131,6 +131,9 @@ export interface DesktopApi {
   setPinnedState(pinned: boolean): Promise<boolean>;
   discoverCompatibleModels(baseURL: string, apiKey: string): Promise<Array<{ id: string; name: string }>>;
   visionConfigured(): Promise<boolean>;
+  listVisionModels(): Promise<Array<{ id: string; label: string }>>;
+  getVisionModel(): Promise<string>;
+  setVisionModel(id: string): Promise<string>;
   setVisionApiKey(key: string): Promise<boolean>;
   describeImages(images: Array<{ mime: string; dataUrl: string }>, context: string): Promise<string>;
   captureScreen(): Promise<{ mime: string; dataUrl: string }>;

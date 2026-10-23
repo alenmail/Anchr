@@ -27,7 +27,7 @@ import { createMainErrorReporter } from "./errorReporter";
 import { findInstructionFiles } from "./instructionFiles";
 import { channels } from "./channels";
 import { anchrCompatibleProvider } from "./opencodeConfig";
-import { captureStudioScreen, describeImages, findVisualReferences, saveVisionKey, visionIsConfigured } from "./assistantServices";
+import { captureStudioScreen, describeImages, findVisualReferences, saveVisionKey, visionIsConfigured, listVisionModels, getVisionModel, setVisionModel } from "./assistantServices";
 import { makeOpenCodeLayer, OpenCode } from "./services/OpenCode";
 import {
   GeneratedProgramRuntime,
@@ -292,6 +292,12 @@ const registerIpcHandlers = Effect.sync(() => {
     return applied;
   });
   ipcMain.handle(channels.visionConfigured, () => visionIsConfigured());
+  ipcMain.handle(channels.listVisionModels, () => listVisionModels());
+  ipcMain.handle(channels.getVisionModel, () => getVisionModel());
+  ipcMain.handle(channels.setVisionModel, (_event, id: unknown) => {
+    if (typeof id !== "string") throw new Error("Invalid vision model ID");
+    return setVisionModel(id);
+  });
   ipcMain.handle(channels.setVisionApiKey, (_event, key: unknown) => {
     if (typeof key !== "string") throw new Error("Invalid vision API key");
     return saveVisionKey(key);

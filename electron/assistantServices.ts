@@ -134,7 +134,6 @@ export async function findVisualReferences(input: string): Promise<WebReference[
   } catch (error) {
     console.warn("[Anchr] Openverse reference lookup unavailable; checking Commons:", error);
   }
-  if (results.length >= 6) return results.slice(0, 6);
   const url = new URL("https://commons.wikimedia.org/w/api.php");
   for (const [key, value] of Object.entries({
     action: "query", generator: "search", gsrsearch: term,

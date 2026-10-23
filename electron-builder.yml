@@ -40,3 +40,5 @@ extraResources:
     to: anchr-mcp/node_modules
   - from: vendor/blender-runtime
     to: blender-runtime
+  - from: vendor/anchr-icons
+    to: anchr-icons

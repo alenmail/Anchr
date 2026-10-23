@@ -68,13 +68,13 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.4-beta.1
-          name: Anchr v0.1.4 (beta)
+          tag_name: v0.1.4-beta.2
+          name: Anchr v0.1.4 (beta 2)
           target_commitish: ${{ github.sha }}
           prerelease: true
           generate_release_notes: false
           body: |
-            Anchr v0.1.4 beta for Windows: stream autoscroll, screenshot/vision bridge, visual references, approved prompt rewriting and in-app GitHub update checks.
+            Anchr v0.1.4 beta 2: clarifies vision setup for text-only models and removes remaining inherited thinking-component naming.
             This is an unsigned prerelease. Install only if you trust the project.
             Live Roblox Studio integration still requires testing.
           files: |

@@ -470,9 +470,10 @@ function ChatInput() {
       // Preparation requests run together; provider latency is outside
       // Anchr's control but vision and reference lookup don't need to queue.
       const [caption, references] = await Promise.all([
-        images?.length ? desktop.visionConfigured().then(enabled =>
-          enabled ? desktop.describeImages(images.map(({mime,url})=>({mime,dataUrl:url})),outgoing) : null
-        ) : Promise.resolve(null),
+        images?.length ? desktop.visionConfigured().then(enabled => {
+          if (!enabled) throw new Error("To send screenshots to a text-only model, first configure Anchr Vision in Settings → Providers (Gemini API key). Your image was not sent.");
+          return desktop.describeImages(images.map(({mime,url})=>({mime,dataUrl:url})),outgoing);
+        }) : Promise.resolve(null),
         visualSearch ? desktop.findVisualReferences(searchTerm.slice(0,180)).catch(error => {
           toast.warning("Visual reference lookup unavailable", {description: String(error)});
           return [];

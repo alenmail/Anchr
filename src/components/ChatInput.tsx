@@ -767,7 +767,6 @@ function ChatInput() {
                 aria-expanded={showAttachmentMenu}
                 title="Attach image or capture screenshot"
                 className={`flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-background transition-colors hover:bg-accent hover:text-foreground ${rejectShake ? "animate-reject-shake text-red-500" : "text-muted-foreground/60"}`}
-                title="Attach images"
               >
                 <svg
                   width="15"

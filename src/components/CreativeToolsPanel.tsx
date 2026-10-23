@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Clapperboard, Figma, Image, RefreshCw, ExternalLink, Check, Sparkles } from "lucide-react";
+import { Box, Clapperboard, Layers, Image, RefreshCw, ExternalLink, Check, Sparkles } from "lucide-react";
 import { desktop } from "@/lib/desktop";
 
 const inp="mt-1.5 h-9 w-full rounded-lg border border-white/10 bg-[#0c141d] px-3 text-xs outline-none focus:border-sky-500/60";
@@ -96,7 +96,7 @@ export default function CreativeToolsPanel(){
       </div>}
     </section>
     <section className="space-y-3 rounded-xl border border-white/10 bg-white/[.025] p-4">
-      <div className="flex justify-between gap-2"><h4 className="flex items-center gap-2 text-[13px] font-semibold"><Figma size={16}/> Figma → Roblox UI</h4><span className="text-[10px] text-slate-400">{figmaActive?"Connected":"Not connected"}</span></div>
+      <div className="flex justify-between gap-2"><h4 className="flex items-center gap-2 text-[13px] font-semibold"><Layers size={16}/> Figma → Roblox UI</h4><span className="text-[10px] text-slate-400">{figmaActive?"Connected":"Not connected"}</span></div>
       <p className="text-[11px] leading-5 text-muted-foreground">Import frames, text, positions and solid fills from designs you can access. Image/vector layers need asset IDs uploaded to Roblox.</p>
       <label className="block text-[11px]">Figma personal access token (scope: file_content:read)
         <input className={inp} type="password" autoComplete="off" value={figmaKey} onChange={e=>setFigmaKey(e.target.value)} placeholder={figmaActive?"Replace existing token":"Paste token from Figma Settings"}/>

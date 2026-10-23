@@ -1,5 +1,9 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Camera, Globe2, WandSparkles } from "lucide-react";
+import { desktop } from "@/lib/desktop";
+import { useOpenCodeClient } from "@/providers/OpenCodeClientProvider";
+import { ASK_ALL_PERMISSIONS, rejectPermissions } from "@/lib/hiddenSession";
 import PromptEditor, { type PromptEditorHandle } from "@/components/PromptEditor";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
@@ -229,6 +233,7 @@ const SendButton = memo(function SendButton({
 
 function ChatInput() {
   const { pendingReference, consumeReference, objects } = useExplorerReference();
+  const { client } = useOpenCodeClient();
   const allModels = useAllModels();
   const agents = useAgents();
   const commands = useCommands();
@@ -252,6 +257,10 @@ function ChatInput() {
   }, [selectedModel, allModels]);
 
   const [text, setText] = useState("");
+  const [preparing, setPreparing] = useState(false);
+  const [improving, setImproving] = useState(false);
+  const [draftImprovement, setDraftImprovement] = useState<string | null>(null);
+  const [useWebReferences, setUseWebReferences] = useState(true);
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -433,11 +442,11 @@ function ChatInput() {
     [agents],
   );
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const editorText = promptEditorRef.current?.getText() ?? text;
     const trimmed = editorText.trim();
     if (!trimmed && attachments.length === 0) return;
-    if (isBusy) return;
+    if (isBusy || preparing) return;
     const submittedText = editorText;
     const submittedAttachments = attachments;
     failedSendRef.current = {
@@ -449,12 +458,84 @@ function ChatInput() {
       attachments.length > 0
         ? attachments.map((a) => ({ mime: a.mime, url: a.dataUrl, filename: a.filename }))
         : undefined;
-    setText("");
-    setAttachments([]);
-    promptEditorRef.current?.clear();
-    void sendMessage
-      .mutateAsync({ text: trimmed || " ", images, studioTargetReference })
-      .catch(() => undefined);
+    setPreparing(true);
+    const toastId = attachments.length ? toast.loading("Reading attached images…") : undefined;
+    try {
+      let outgoing = trimmed || "Describe the attached screenshots and help me build this in Roblox Studio.";
+      let forwardedImages = images;
+      if (images?.length && await desktop.visionConfigured()) {
+        const caption = await desktop.describeImages(images.map(({mime,url})=>({mime,dataUrl:url})),outgoing);
+        outgoing += "\n\n[VISUAL CONTEXT — Gemini image description, not direct observation by the coding model]\n" + caption;
+        forwardedImages = undefined; // A text-only coding model must never receive raw image parts.
+      }
+      const lookUp = useWebReferences && /\b(look(?:s|ing)? like|appearance|image reference|visual reference|inspired by|scp[ -]?\d{2,})\b/i.test(outgoing);
+      if (lookUp) {
+        const references = await desktop.findVisualReferences(trimmed.slice(0,200));
+        if (references.length) {
+          outgoing += "\n\n[WEB VISUAL REFERENCES — Wikimedia Commons results; links are references, not licensed assets to copy]\n" +
+            references.slice(0,5).map(r=>`- ${r.title}: ${r.url} ${r.description ?? ""}`).join("\n");
+        } else {
+          toast.info("No verified Commons image references found. Anchr will use your description.");
+        }
+      }
+      setText("");
+      setAttachments([]);
+      promptEditorRef.current?.clear();
+      await sendMessage.mutateAsync({ text: outgoing, images: forwardedImages, studioTargetReference });
+    } catch (cause) {
+      toast.error("Could not prepare your message", {description: cause instanceof Error ? cause.message : String(cause)});
+    } finally {
+      if (toastId !== undefined) toast.dismiss(toastId);
+      setPreparing(false);
+    }
+  }
+
+  async function captureScreenshot() {
+    try {
+      const image = await desktop.captureScreen();
+      setAttachments(prev => prev.length >= MAX_ATTACHMENTS ? prev : [...prev, {
+        id: `img-${++attachmentCounter}`, dataUrl:image.dataUrl, mime:image.mime,
+        filename: `screen-${Date.now()}.png`,
+      }]);
+      toast.success("Screenshot attached. Review it before sending.");
+    } catch (cause) {
+      toast.error("Screen capture failed", {description: cause instanceof Error ? cause.message : String(cause)});
+    }
+  }
+
+  async function improvePrompt() {
+    const currentText = promptEditorRef.current?.getText().trim() ?? text.trim();
+    if (!currentText || !client || !selectedModel) {
+      toast.info("Write a prompt and select a model first.");
+      return;
+    }
+    setImproving(true);
+    let temporaryId: string | null = null;
+    let stopRejecting: (()=>void) | undefined;
+    try {
+      const created = await client.session.create({
+        title: "Anchr draft improvement (temporary)", metadata:{anchrHidden:true,purpose:"improve-prompt"},
+        permission: ASK_ALL_PERMISSIONS,
+      },{throwOnError:true});
+      temporaryId=created.data?.id??null;
+      if(!temporaryId)throw Error("Could not create the temporary prompt session");
+      stopRejecting=rejectPermissions(client,temporaryId);
+      const [providerID,modelID]=splitModelKey(selectedModel);
+      const answer=await client.session.prompt({
+        sessionID:temporaryId, model:{providerID,modelID},
+        system:"You rewrite requests for a Roblox Studio AI coding assistant. Expand unclear details into a concise structured implementation request. Preserve the user's intent. Do not invent decisions; mark assumptions with [confirm]. Do not call any tools or edit any files. Return ONLY the improved prompt.",
+        parts:[{type:"text",text:currentText}],
+      },{throwOnError:true});
+      const candidate=answer.data?.parts.filter(part=>part.type==="text").map(part=>part.text).join("\n").trim();
+      if(!candidate)throw Error("The selected model returned no improved prompt");
+      setDraftImprovement(candidate);
+    } catch(cause) {
+      toast.error("Prompt improvement failed",{description:cause instanceof Error?cause.message:String(cause)});
+    } finally {
+      stopRejecting?.();
+      if(temporaryId)await client.session.delete({sessionID:temporaryId}).catch(()=>undefined);
+      setImproving(false);
+    }
   }
 
   const agentDisplay = selectedAgent ?? "Default agent";
@@ -515,6 +596,14 @@ function ChatInput() {
         )}
       </div>
 
+      {draftImprovement && <div className="mb-3 rounded-xl border border-sky-400/30 bg-sky-500/5 p-3">
+        <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-sky-300"><WandSparkles size={14}/> Suggested prompt — review before using</div>
+        <p className="max-h-44 overflow-auto whitespace-pre-wrap text-xs leading-relaxed">{draftImprovement}</p>
+        <div className="mt-3 flex gap-2">
+          <button type="button" onClick={() => { promptEditorRef.current?.clear(); promptEditorRef.current?.insertText(draftImprovement); setDraftImprovement(null); }} className="rounded-lg bg-slate-100 px-3 py-1.5 text-[11px] font-semibold text-slate-950">Use improved prompt</button>
+          <button type="button" onClick={() => setDraftImprovement(null)} className="rounded-lg border px-3 py-1.5 text-[11px]">Keep mine</button>
+        </div>
+      </div>}
       <input
         ref={fileInputRef}
         type="file"
@@ -582,7 +671,7 @@ function ChatInput() {
             commands={commands}
             objects={objects}
             onChange={setText}
-            onSubmit={handleSubmit}
+            onSubmit={() => void handleSubmit()}
             onPaste={(e) => {
               const items = e.clipboardData.items;
               const imageFiles: File[] = [];
@@ -650,6 +739,20 @@ function ChatInput() {
               </div>
             )}
             <div className="flex items-center gap-1">
+              <button type="button" onClick={() => void improvePrompt()} disabled={improving||preparing}
+                className="inline-flex h-7 items-center gap-1 rounded-lg border border-border px-2 text-[10px] text-muted-foreground hover:text-sky-300 disabled:opacity-40"
+                title="Improve draft with your selected AI model, then review it">
+                <WandSparkles size={13}/>{improving ? "Improving..." : "Improve"}
+              </button>
+              <button type="button" onClick={() => setUseWebReferences(v=>!v)}
+                title={useWebReferences ? "Web references enabled for appearance prompts" : "Enable web visual references"}
+                aria-pressed={useWebReferences}
+                className={`flex h-7 w-7 items-center justify-center rounded-lg border ${useWebReferences ? "border-sky-500/35 text-sky-300" : "border-border text-muted-foreground"}`}>
+                <Globe2 size={14}/>
+              </button>
+              <button type="button" onClick={() => void captureScreenshot()} title="Capture a screenshot (review before sending)" className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-sky-300">
+                <Camera size={14}/>
+              </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className={`flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-background transition-colors hover:bg-accent hover:text-foreground ${rejectShake ? "animate-reject-shake text-red-500" : "text-muted-foreground/60"}`}
@@ -671,8 +774,8 @@ function ChatInput() {
               <SendButton
                 text={text}
                 hasAttachments={attachments.length > 0}
-                isBusy={isBusy}
-                onSend={handleSubmit}
+                isBusy={isBusy || preparing}
+                onSend={() => void handleSubmit()}
               />
             </div>
           </div>

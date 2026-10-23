@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import ProviderCheckPopover from "@/components/ProviderCheckPopover";
 import CompatibleProviderPanel from "@/components/CompatibleProviderPanel";
+import VisionBridgePanel from "@/components/VisionBridgePanel";
 import ProviderConnectDialog from "@/components/ProviderConnectDialog";
 import ProviderLogo from "@/components/ProviderLogo";
 import { THEME_OPTIONS, type Theme, useTheme } from "@/components/theme-provider";
@@ -396,6 +397,7 @@ function ProvidersTab() {
       </p>
 
       <CompatibleProviderPanel />
+      <VisionBridgePanel />
 
       {allProviders.length > 0 && (
         <div className="relative mt-5">

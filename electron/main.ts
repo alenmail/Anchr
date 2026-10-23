@@ -393,8 +393,26 @@ const registerIpcHandlers = Effect.sync(() => {
       ),
     ),
   );
-  ipcMain.handle(channels.checkForUpdate, () => Promise.resolve(null));
-  ipcMain.handle(channels.installUpdate, () => Promise.reject(new Error("Anchr updates are not yet configured")));
+  ipcMain.handle(channels.checkForUpdate, async () => {
+    if (!app.isPackaged) return null;
+    autoUpdater.allowPrerelease = true;
+    autoUpdater.channel = "beta";
+    const result = await autoUpdater.checkForUpdates();
+    if (!result || result.updateInfo.version === app.getVersion()) return null;
+    const notes = result.updateInfo.releaseNotes;
+    const body = typeof notes === "string" ? notes : Array.isArray(notes) ?
+      notes.map(entry => entry.note ?? "").join("\n") : null;
+    return { version: result.updateInfo.version, body };
+  });
+  ipcMain.handle(channels.installUpdate, async () => {
+    if (!app.isPackaged) throw new Error("Updates require an installed release");
+    autoUpdater.allowPrerelease = true;
+    autoUpdater.channel = "beta";
+    const check = await autoUpdater.checkForUpdates();
+    if (!check || check.updateInfo.version === app.getVersion()) throw new Error("No newer Anchr version is available");
+    await autoUpdater.downloadUpdate();
+    setImmediate(() => autoUpdater.quitAndInstall(false, true));
+  });
   ipcMain.handle(
     channels.invokeExplorerProgram,
     (_event, input: unknown, studioIdInput: unknown) =>

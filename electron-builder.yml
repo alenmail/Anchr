@@ -28,7 +28,12 @@ linux:
   artifactName: Anchr-${version}-linux-amd64.${ext}
   target:
     - deb
-publish: null
+publish:
+  provider: github
+  owner: alenmail
+  repo: Anchr
+  releaseType: prerelease
+generateUpdatesFilesForAllChannels: true
 extraResources:
   - from: vendor/anchr-mcp/node_modules
     to: anchr-mcp/node_modules

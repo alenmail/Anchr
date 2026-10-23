@@ -118,6 +118,38 @@ export async function findVisualReferences(input: string): Promise<WebReference[
         ? image.extmetadata.ImageDescription.value.replace(/<[^>]*>/g, " ").slice(0, 280) : undefined,
     });
   }
-  // These links are citations / inspiration, not permission to copy third-party assets.
-  return results.slice(0, 6);
+  const chosen = results.slice(0,6);
+  // Visual reference descriptions require the *separately configured* vision
+  // key. Without it, we return public titles and attribution links only.
+  // Fetch no more than two thumbnails to respect latency, quotas and traffic.
+  if (chosen.length && await visionIsConfigured()) {
+    const images = await Promise.all(chosen.slice(0,2).map(async ref => {
+      if (!ref.imageUrl) return null;
+      try {
+        const parsed = new URL(ref.imageUrl);
+        if (parsed.protocol !== "https:" || !parsed.hostname.endsWith(".wikimedia.org")) return null;
+        const response = await fetch(parsed.toString(), { signal: AbortSignal.timeout(9000) });
+        const mime = (response.headers.get("content-type") ?? "").split(";")[0].trim();
+        if (!response.ok || !SUPPORTED.has(mime) || Number(response.headers.get("content-length") ?? 0) > 3_000_000)
+          return null;
+        if (!new URL(response.url).hostname.endsWith(".wikimedia.org")) return null;
+        const image = Buffer.from(await response.arrayBuffer());
+        if (image.length > 3_000_000) return null;
+        return { mime, dataUrl: `data:${mime};base64,${image.toString("base64")}` };
+      } catch { return null; }
+    }));
+    const available = images.filter((image): image is ImageForVision => image !== null);
+    if (available.length) {
+      try {
+        const summary = await describeImages(available,
+          `Describe the visual appearance of these public Commons search results for: ${term}. Describe only what you actually see; do not infer copyrighted character traits or copy assets.`);
+        chosen[0].description = `Visual observations from ${available.length} Wikimedia images: ${summary.slice(0,2400)}`;
+      } catch (error) {
+        console.warn("[Anchr] Visual reference image interpretation unavailable:", error);
+      }
+    }
+  }
+  // These sources are visual guidance with citations, not permission to
+  // republish someone else's copyrighted asset in a Roblox experience.
+  return chosen;
 }

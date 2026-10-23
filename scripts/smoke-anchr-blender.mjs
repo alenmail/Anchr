@@ -24,7 +24,7 @@ try{
   assert(!status.isError,"Blender status failed");
   const model=await client.callTool({name:"blender_generate_model",arguments:{
     name:"Anchr CI test prop",archetype:"prop",style:"stylized",detail:1,animation:"none",
-  }},{timeout:210000});
+  }},undefined,{timeout:210000});
   assert(!model.isError,"Blender generator tool failed: "+JSON.stringify(model.content));
   const txt=model.content.find(x=>x.type==="text");
   const data=JSON.parse(txt.text);

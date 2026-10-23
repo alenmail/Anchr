@@ -207,9 +207,9 @@ const ImageLightbox = memo(function ImageLightbox() {
   );
 });
 
-// ── Inline BloxBot thinking indicator ────────────────────────────────────
+// ── Anchr assistant thinking indicator ────────────────────────────────────
 
-function BloxBotThinking({ label = "Thinking..." }: { label?: string }) {
+function AnchrThinking({ label = "Thinking..." }: { label?: string }) {
   return (
     <div className="flex min-h-[23px] items-center gap-2.5 text-[12px] leading-relaxed text-muted-foreground">
       <img src={anchrMark} alt="" className="h-5 w-5 shrink-0 opacity-90 anchr-thinking-icon" aria-hidden="true" />
@@ -1476,7 +1476,7 @@ const MessageBubble = memo(function MessageBubble({ messageId }: { messageId: st
           <UserPartsView parts={msg.parts} />
         ) : (
           <div className="space-y-2">
-            {msg.parts.length === 0 && <BloxBotThinking />}
+            {msg.parts.length === 0 && <AnchrThinking />}
             {msg.parts.map((part) => (
               <PartRenderer key={part.id} part={part} />
             ))}
@@ -1502,7 +1502,7 @@ const BusyThinkingIndicator = memo(function BusyThinkingIndicator({
   lastMessage: MessageWithParts | undefined;
 }) {
   if (status?.type !== "busy" || !lastMessage || lastMessage.info.role !== "user") return null;
-  return <BloxBotThinking />;
+  return <AnchrThinking />;
 });
 
 function ChatMessages() {

@@ -38,3 +38,5 @@ generateUpdatesFilesForAllChannels: true
 extraResources:
   - from: vendor/anchr-mcp/node_modules
     to: anchr-mcp/node_modules
+  - from: vendor/blender-runtime
+    to: blender-runtime

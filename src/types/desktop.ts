@@ -131,7 +131,7 @@ export interface DesktopApi {
   setPinnedState(pinned: boolean): Promise<boolean>;
   discoverCompatibleModels(baseURL: string, apiKey: string): Promise<Array<{ id: string; name: string }>>;
   blenderStatus(): Promise<{ available: boolean; runtimeBundled: boolean; engine: string; outputDirectory: string }>;
-  blenderCreateModel(plan: { name: string; archetype: "creature"|"character"|"humanoid"|"vehicle"|"building"|"architecture"|"prop"; style?: "stylized"|"realistic"|"lowpoly"; animation?: "none"|"idle"|"walk"|"run"|"attack"; detail?: number }): Promise<{ folder: string; preview: string; model: string; native: string; report: { objects: number; archetype: string; animation: string } }>;
+  blenderCreateModel(plan: { name: string; concept?: string; archetype: "creature"|"character"|"humanoid"|"vehicle"|"building"|"architecture"|"prop"; style?: "stylized"|"realistic"|"lowpoly"; animation?: "none"|"idle"|"walk"|"run"|"attack"; detail?: number }): Promise<{ folder: string; preview: string; model: string; native: string; report: { objects: number; archetype: string; animation: string } }>;
   openCreativeFile(path: string): Promise<void>;
   openIconFolder(): Promise<void>;
   figmaConfigured(): Promise<boolean>;

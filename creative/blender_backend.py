@@ -22,6 +22,13 @@ scale = min(3.0, max(.4, float(spec.get("scale", 1))))
 palette = spec.get("palette") or ["#596b80", "#b1b5ba", "#273749"]
 animation = str(spec.get("animation", "idle"))
 detail = min(3, max(1, int(spec.get("detail", 2))))
+concept = str(spec.get("concept", "")).lower()[:500]
+height_factor = 1.35 if any(t in concept for t in ("tall", "towering", "lanky", "scp-096", "scp 096")) else 1.0
+width_factor = .68 if any(t in concept for t in ("thin", "skinny", "emaciated", "gaunt", "slender", "scp-096", "scp 096")) else 1.0
+if any(t in concept for t in ("bulky", "muscular", "massive", "heavy armor")): width_factor = 1.3
+if not spec.get("palette") and any(t in concept for t in ("pale", "gray skin", "grey skin", "scp-096", "scp 096")):
+    palette = ["#b5b7b3", "#aaa9a4", "#20232a"]
+
 
 def color(hex_value):
     try:
@@ -63,6 +70,33 @@ def cube(label, loc, dims, mat=0, bevel=.08):
         ob.modifiers.new("Weighted_Normals","WEIGHTED_NORMAL")
     objects.append(ob)
     return ob
+def organic_tube(label, a, b, radius, mat=0, vertices=18):
+    """Continuous tapered limb mesh: more natural silhouette than a Cylinder."""
+    direction=Vector(b)-Vector(a)
+    basis=direction.to_track_quat("Z","Y")
+    rings=[0,.13,.35,.55,.78,.94,1.0]
+    widths=[.72,1.00,1.13,.98,.83,.64,.48]
+    verts=[];faces=[]
+    for k,t in enumerate(rings):
+        center=Vector(a).lerp(Vector(b),t)
+        for j in range(vertices):
+            theta=2*math.pi*j/vertices
+            vector=basis @ Vector((math.cos(theta),math.sin(theta),0))
+            verts.append(center+vector*(radius*scale*widths[k]))
+    for k in range(len(rings)-1):
+        for j in range(vertices):
+            z=k*vertices+j
+            zz=k*vertices+(j+1)%vertices
+            faces.append((z,zz,zz+vertices,z+vertices))
+    faces.append(tuple(reversed(range(vertices))))
+    faces.append(tuple((len(rings)-1)*vertices+j for j in range(vertices)))
+    mesh=bpy.data.meshes.new(label+"_mesh")
+    mesh.from_pydata(verts,[],faces);mesh.update()
+    ob=bpy.data.objects.new(label,mesh);bpy.context.collection.objects.link(ob)
+    mesh.materials.append(mats[mat%len(mats)])
+    smooth(ob);objects.append(ob)
+    return ob
+
 def cylinder(label, a, b, radius, mat=0, vertices=20):
     center=(Vector(a)+Vector(b))/2
     diff=Vector(b)-Vector(a)
@@ -77,7 +111,7 @@ bpy.context.collection.objects.link(root)
 root.empty_display_type="CUBE";root.empty_display_size=.25
 rigged={}
 if kind in ("creature","character","humanoid"):
-    torso=cube("Sculpted_Torso",(0,0,1.75*scale),(.95,.50,1.22),0,.18)
+    torso=mesh_uv("Organic_Torso",(0,0,1.75*scale),(.52,.38,.77),0)
     mesh_uv("Chest_Silhouette",(0,-.025*scale,1.94*scale),(.51,.31,.53),0)
     mesh_uv("Head",(0,0,2.74*scale),(.37,.34,.46),1)
     mesh_uv("Jaw",(0,-.18*scale,2.48*scale),(.29,.23,.15),1)
@@ -86,19 +120,19 @@ if kind in ("creature","character","humanoid"):
         side_name="L" if side<0 else "R"
         sx=side*.68*scale
         shoulder=mesh_uv(side_name+"_Shoulder",(sx,0,2.15*scale),(.25,.26,.26),0)
-        upper=cylinder(side_name+"_UpperArm",(sx,0,2.12*scale),(sx*1.08,0,1.43*scale),.17,0)
+        upper=organic_tube(side_name+"_UpperArm",(sx,0,2.12*scale),(sx*1.08,0,1.43*scale),.17,0)
         elbow=mesh_uv(side_name+"_Elbow",(sx*1.08,0,1.43*scale),(.19,.17,.19),2)
-        lower=cylinder(side_name+"_Forearm",(sx*1.08,0,1.43*scale),(sx*1.13,-.04*scale,.87*scale),.13,0)
+        lower=organic_tube(side_name+"_Forearm",(sx*1.08,0,1.43*scale),(sx*1.13,-.04*scale,.87*scale),.13,0)
         hand=mesh_uv(side_name+"_Hand",(sx*1.13,-.05*scale,.84*scale),(.19,.12,.22),1)
-        thigh=cylinder(side_name+"_UpperLeg",(side*.30*scale,0,1.20*scale),(side*.33*scale,0,.63*scale),.24,0)
-        shin=cylinder(side_name+"_LowerLeg",(side*.33*scale,0,.63*scale),(side*.34*scale,0,.14*scale),.16,0)
+        thigh=organic_tube(side_name+"_UpperLeg",(side*.30*scale,0,1.20*scale),(side*.33*scale,0,.63*scale),.24,0)
+        shin=organic_tube(side_name+"_LowerLeg",(side*.33*scale,0,.63*scale),(side*.34*scale,0,.14*scale),.16,0)
         foot=cube(side_name+"_Foot",(side*.34*scale,-.16*scale,.12*scale),(.33,.56,.21),2,.08)
         rigged[side_name+"_Arm"]=[shoulder,upper,elbow,lower,hand]
         rigged[side_name+"_Leg"]=[thigh,shin,foot]
     # Separate high-contrast face details; not just a sphere-on-cube dummy.
     for side in (-1,1):
         mesh_uv(("L" if side<0 else "R")+"_Eye",(side*.15*scale,-.31*scale,2.80*scale),(.065,.045,.10),2,16)
-    if detail>1:
+    if "armored" in concept or "robot" in concept or "mechanical" in concept:
         for i in range(7):
             pos=(-.30+i*.10)*scale
             cube("Armor_Segment_"+str(i),(pos,-.29*scale,1.86*scale),(.09,.08,.46),2,.028)
@@ -122,6 +156,18 @@ else:
     mesh_uv("Base_Form",(0,0,.82*scale),(.9,.74,.9),0)
     cylinder("Neck",(0,0,1.30*scale),(0,0,1.9*scale),.35,1)
     cube("Cap",(0,0,2.10*scale),(1.32,1.0,.42),2,.15)
+
+# Apply planning proportions before creating animation pivots.
+if kind in ("creature","character","humanoid"):
+    for ob in objects:
+        ob.location.x *= width_factor
+        ob.location.y *= width_factor
+        ob.location.z *= height_factor
+        ob.scale.x *= width_factor
+        ob.scale.y *= width_factor
+        ob.scale.z *= height_factor
+    if detail > 1:
+        mesh_uv("Mouth_Shadow",(0,-.345*scale*width_factor,2.48*scale*height_factor),(.20,.032,.035),2,24)
 
 # Simple rig controller empties so preview and exported GLB contain real keyframe animation.
 for label, parts in rigged.items():
@@ -183,7 +229,7 @@ bpy.context.view_layer.objects.active=objects[0]
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(output_dir,"model.blend"))
 bpy.ops.export_scene.gltf(filepath=os.path.join(output_dir,"model.glb"),export_format="GLB",
     use_selection=False,export_apply=False,export_animations=True,export_cameras=False,export_lights=False)
-report={"model":name,"archetype":kind,"style":style,"animation":animation,
+report={"model":name,"archetype":kind,"style":style,"animation":animation,"concept":concept,"proportions":{"height":height_factor,"width":width_factor},
         "objects":len(objects),"files":["model.blend","model.glb","preview.png"],
         "limitations":["Procedural template geometry; not a photogrammetry or text-to-mesh model.",
                        "Rig animations are basic pivot keyframes; Roblox rig retargeting may be required."]}

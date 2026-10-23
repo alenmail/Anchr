@@ -9,6 +9,7 @@ type Frame={id:string;name:string};
 export default function CreativeToolsPanel(){
   const [runtime,setRuntime]=useState<{available:boolean;runtimeBundled:boolean;outputDirectory:string}|null>(null);
   const [modelName,setModelName]=useState("Stylized creature");
+  const [concept,setConcept]=useState("A tall, slender, eerie humanoid with a pale surface and long arms");
   const [archetype,setArchetype]=useState<"creature"|"character"|"humanoid"|"vehicle"|"building"|"architecture"|"prop">("creature");
   const [style,setStyle]=useState<"stylized"|"realistic"|"lowpoly">("stylized");
   const [animation,setAnimation]=useState<"none"|"idle"|"walk"|"run"|"attack">("idle");
@@ -34,7 +35,7 @@ export default function CreativeToolsPanel(){
   async function makeModel(){
     clear();setModelBusy(true);
     try{
-      const output=await desktop.blenderCreateModel({name:modelName,archetype,style,animation,detail:3});
+      const output=await desktop.blenderCreateModel({name:modelName,concept,archetype,style,animation,detail:3});
       setModelOutput(output);
       setMessage("Model exported. Review the preview, then import the GLB through Roblox Studio > File > Import 3D.");
     }catch(e){setError(e instanceof Error?e.message:"Blender generation failed");}
@@ -78,6 +79,9 @@ export default function CreativeToolsPanel(){
       </div>
       <p className="text-[11px] leading-5 text-muted-foreground">Generates a textured procedural GLB, editable .blend file and preview. For more complex models, ask Anchr to call its Blender MCP tools.</p>
       <label className="block text-[11px]">Model name<input className={inp} value={modelName} onChange={e=>setModelName(e.target.value)} maxLength={70}/></label>
+      <label className="block text-[11px]">Appearance and proportions
+        <textarea className={inp+" min-h-[64px] resize-y py-2"} maxLength={500} value={concept} onChange={e=>setConcept(e.target.value)} placeholder="Describe silhouette, proportions, color and defining features"/>
+      </label>
       <div className="grid grid-cols-2 gap-2">
         <label className="text-[11px]">Archetype<select className={inp} value={archetype} onChange={e=>setArchetype(e.target.value as typeof archetype)}>
           {["creature","character","humanoid","vehicle","building","architecture","prop"].map(x=><option key={x} value={x}>{x}</option>)}

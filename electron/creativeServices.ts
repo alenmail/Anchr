@@ -7,6 +7,7 @@ import { homedir } from "node:os";
 
 export interface BlenderPlan {
   name: string;
+  concept?: string;
   archetype: "creature"|"character"|"humanoid"|"vehicle"|"building"|"architecture"|"prop";
   style?: "stylized"|"realistic"|"lowpoly";
   detail?: number;
@@ -32,7 +33,7 @@ export async function createBlenderModel(plan:BlenderPlan){
   if(!plan||typeof plan.name!=="string"||plan.name.length>70||!plan.name.trim())throw Error("Provide a model name (max 70 chars)");
   if(!["creature","character","humanoid","vehicle","building","architecture","prop"].includes(plan.archetype))throw Error("Choose an archetype");
   const spec={
-    name:plan.name.trim(),archetype:plan.archetype,
+    name:plan.name.trim(),concept:typeof plan.concept==="string"?plan.concept.slice(0,500):"",archetype:plan.archetype,
     style:["stylized","realistic","lowpoly"].includes(plan.style||"")?plan.style:"stylized",
     detail:Math.max(1,Math.min(3,Number(plan.detail)||2)),
     animation:["none","idle","walk","run","attack"].includes(plan.animation||"")?plan.animation:"none",

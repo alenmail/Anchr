@@ -18,6 +18,7 @@ const inputSchema = {
   type:"object",
   properties:{
     name:{type:"string",description:"Short descriptive name"},
+    concept:{type:"string",description:"Visual description and desired silhouette, proportions and character details, max 500 chars. e.g. tall gaunt pale creature with very long arms. Include explicit attributes from the user's request."},
     archetype:{type:"string",enum:["creature","character","humanoid","vehicle","building","architecture","prop"]},
     style:{type:"string",enum:["stylized","realistic","lowpoly"]},
     scale:{type:"number",minimum:0.4,maximum:3.0},
@@ -49,7 +50,7 @@ function validate(args){
    if(a[field]!==undefined && (!Number.isFinite(a[field])||a[field]<min||a[field]>max)) throw Error("Invalid "+field);
  }
  const name=a.name.trim().slice(0,70);
- return {name,archetype:a.archetype||"creature",style:["stylized","realistic","lowpoly"].includes(a.style)?a.style:"stylized",scale:a.scale||1,detail:a.detail||2,seed:a.seed??7,palette:a.palette?.length?a.palette:undefined,animation:a.animation||"idle"};
+ return {name,concept:typeof a.concept==="string"?a.concept.slice(0,500):"",archetype:a.archetype||"creature",style:["stylized","realistic","lowpoly"].includes(a.style)?a.style:"stylized",scale:a.scale||1,detail:a.detail||2,seed:a.seed??7,palette:a.palette?.length?a.palette:undefined,animation:a.animation||"idle"};
 }
 async function runBlender(plan){
  if(!blender||!existsSync(blender)) throw Error("Bundled Blender runtime not found. Reinstall Anchr from the complete v0.2 installer.");

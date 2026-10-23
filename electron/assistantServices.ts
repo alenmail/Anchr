@@ -9,7 +9,15 @@ import { join } from "node:path";
  * - captions, not original images, go to a text-only coding provider.
  */
 const visionKeyPath = () => join(app.getPath("userData"), "vision-key.enc");
-const VISION_MODEL = "gemini-2.5-flash";
+// Gemini 2.5 Flash is no longer accessible to many newly created API projects.
+// Use Google's recommended low-latency image-capable model for new installs.
+const DEFAULT_VISION_MODEL = "gemini-3.5-flash-lite";
+const visionModelPath = () => join(app.getPath("userData"), "vision-model.txt");
+const MODEL_ID = /^gemini-[a-z0-9][a-z0-9._-]{0,100}$/i;
+const GOOGLE_MODELS_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+const VISION_MODEL_LIST_LIMIT = 200;
+export type VisionModelOption = { id: string; label: string };
+
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const SUPPORTED = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 
@@ -30,6 +38,75 @@ async function keyFromStorage(): Promise<string | null> {
 export async function visionIsConfigured(): Promise<boolean> {
   return Boolean(await keyFromStorage());
 }
+/** Lists models that advertise generateContent. Google may still limit access
+ * at generation time, so 404 errors expose the selected model and recovery. */
+export async function listVisionModels(): Promise<VisionModelOption[]> {
+  const key = await keyFromStorage();
+  if (!key) throw new Error("Save a Gemini API key before loading available vision models");
+  const discovered = new Map<string, string>();
+  let pageToken: string | undefined;
+  for (let page = 0; page < 3; page++) {
+    const url = new URL(GOOGLE_MODELS_URL);
+    url.searchParams.set("pageSize", "100");
+    if (pageToken) url.searchParams.set("pageToken", pageToken);
+    const response = await fetch(url, {
+      headers: { "x-goog-api-key": key },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!response.ok) {
+      const message = await googleErrorMessage(response);
+      throw new Error(`Couldn't load Gemini models (HTTP ${response.status}). ${message}`);
+    }
+    const data = await response.json() as {
+      models?: Array<{ name?: string; displayName?: string; supportedGenerationMethods?: string[] }>;
+      nextPageToken?: string;
+    };
+    for (const entry of data.models ?? []) {
+      const id = entry.name?.replace(/^models\//, "") ?? "";
+      if (!MODEL_ID.test(id) ||
+          /(?:image|tts|audio|live|embedding|robotics|computer-use)/i.test(id) ||
+          !entry.supportedGenerationMethods?.includes("generateContent")) continue;
+      if (discovered.size >= VISION_MODEL_LIST_LIMIT) break;
+      discovered.set(id, entry.displayName?.slice(0, 110) || id);
+    }
+    if (!data.nextPageToken || discovered.size >= VISION_MODEL_LIST_LIMIT) break;
+    pageToken = data.nextPageToken;
+  }
+  return [...discovered].map(([id, label]) => ({ id, label })).sort((a,b) =>
+    Number(b.id === DEFAULT_VISION_MODEL) - Number(a.id === DEFAULT_VISION_MODEL) ||
+    a.id.localeCompare(b.id));
+}
+
+export async function getVisionModel(): Promise<string> {
+  try {
+    const saved = (await readFile(visionModelPath(), "utf8")).trim();
+    return MODEL_ID.test(saved) ? saved : DEFAULT_VISION_MODEL;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return DEFAULT_VISION_MODEL;
+    throw error;
+  }
+}
+
+export async function setVisionModel(id: string): Promise<string> {
+  if (typeof id !== "string" || !MODEL_ID.test(id))
+    throw new Error("Select a valid Gemini model from the model list");
+  const available = await listVisionModels();
+  if (!available.some((item) => item.id === id))
+    throw new Error("That model isn't in the list returned by your Gemini API key. Refresh the list.");
+  await writeFile(visionModelPath(), id, { mode: 0o600 });
+  return id;
+}
+
+/** Include a safe, bounded Google error description; never log credentials. */
+async function googleErrorMessage(response: Response): Promise<string> {
+  try {
+    const data = await response.json() as { error?: { message?: string } };
+    if (typeof data.error?.message === "string")
+      return data.error.message.replace(/\s+/g, " ").slice(0, 500);
+  } catch { /* Non-JSON response */ }
+  return "Check your API key, model availability and usage quota.";
+}
+
 export async function saveVisionKey(key: string): Promise<boolean> {
   if (typeof key !== "string" || key.length > 512) throw new Error("Invalid vision API key");
   if (!safeStorage.isEncryptionAvailable()) throw new Error("Windows secure storage is unavailable");
@@ -59,15 +136,26 @@ export async function describeImages(images: ImageForVision[], context: string):
     { text: `Describe these screenshots for a TEXT-ONLY Roblox Studio coding assistant. Be precise about layout, objects, colors, proportions, and visible text. Do not invent unseen elements. Note ambiguity. User request: ${String(context).slice(0,3000)}. Return a concise technical visual description, not a response to the user.` },
     ...images.map(partsForImage),
   ];
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${VISION_MODEL}:generateContent`, {
+  const model = await getVisionModel();
+  const response = await fetch(`${GOOGLE_MODELS_URL}/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({ contents: [{ parts: content }], generationConfig: { maxOutputTokens: 1200, temperature: 0.15 } }),
     signal: AbortSignal.timeout(45000),
   });
   if (!response.ok) {
-    if (response.status === 429) throw new Error("Gemini's free-tier quota was reached. Retry later or use a different key/model.");
-    throw new Error(`Image analysis failed (HTTP ${response.status}). Verify the API key and free-tier access.`);
+    const detail = await googleErrorMessage(response);
+    if (response.status === 404) throw new Error(
+      `Gemini model "${model}" is unavailable for your API project (HTTP 404). ` +
+      `Go to Settings → Providers → Image understanding → Change, refresh the model list and choose an accessible model. ${detail}`
+    );
+    if (response.status === 429) throw new Error(
+      `Your Gemini API quota or rate limit has been reached for "${model}" (HTTP 429). ${detail}`
+    );
+    if (response.status === 401 || response.status === 403) throw new Error(
+      `Gemini API key or project permission rejected for "${model}" (HTTP ${response.status}). ${detail}`
+    );
+    throw new Error(`Gemini image analysis failed for "${model}" (HTTP ${response.status}). ${detail}`);
   }
   const data = await response.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("\n").trim();

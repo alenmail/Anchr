@@ -54,6 +54,8 @@ jobs:
           $script = 'import sys, bpy; print("ANCHR_BLENDER_CI_OK", bpy.app.version_string)'
           ./vendor/blender-runtime/blender.exe -b --factory-startup --python-expr $script
           if ($LASTEXITCODE -ne 0) { throw "Blender startup failed" }
+      - name: Verify Blender MCP handshake and generate a sample GLB
+        run: node scripts/smoke-anchr-blender.mjs
       - name: Verify MCP handshake and Chrrxs tools
         run: node scripts/smoke-anchr-mcp.mjs
       - name: Typecheck Electron main process

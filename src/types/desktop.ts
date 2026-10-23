@@ -130,6 +130,11 @@ export interface DesktopApi {
   getPinnedState(): Promise<boolean>;
   setPinnedState(pinned: boolean): Promise<boolean>;
   discoverCompatibleModels(baseURL: string, apiKey: string): Promise<Array<{ id: string; name: string }>>;
+  visionConfigured(): Promise<boolean>;
+  setVisionApiKey(key: string): Promise<boolean>;
+  describeImages(images: Array<{ mime: string; dataUrl: string }>, context: string): Promise<string>;
+  captureScreen(): Promise<{ mime: string; dataUrl: string }>;
+  findVisualReferences(query: string): Promise<Array<{ title: string; url: string; imageUrl?: string; description?: string }>>;
   checkForUpdate(): Promise<UpdateInfo | null>;
   installUpdate(): Promise<void>;
   relaunch(): Promise<void>;

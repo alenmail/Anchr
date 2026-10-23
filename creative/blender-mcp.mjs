@@ -90,11 +90,11 @@ async function handleTool(request){
    }
    return fail("Unknown Blender tool: "+name);
  }catch(e){return fail(e instanceof Error?e.message:String(e))}
-});
+}
 // Minimal standards-compliant MCP JSON-RPC 2.0 stdio adapter.
 const reader=createInterface({input:process.stdin,crlfDelay:Infinity});
 function send(id,result,error){
-  process.stdout.write(JSON.stringify(error?{jsonrpc:"2.0",id,error}:{jsonrpc:"2.0",id,result})+"\\n");
+  process.stdout.write(JSON.stringify(error?{jsonrpc:"2.0",id,error}:{jsonrpc:"2.0",id,result})+"\n");
 }
 for await(const line of reader){
   if(!line.trim())continue;

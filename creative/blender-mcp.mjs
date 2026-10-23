@@ -1,9 +1,7 @@
 /** Anchr local Blender MCP; no cloud calls or arbitrary Python execution.
  * Run as a stdio child of OpenCode using the app-bundled Electron Node mode.
  */
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { createInterface } from "node:readline";
 import { spawn } from "node:child_process";
 import { mkdtemp, writeFile, readFile, readdir, stat } from "node:fs/promises";
 import { tmpdir, homedir } from "node:os";
@@ -29,14 +27,14 @@ const inputSchema = {
   },
   required:["name","archetype"]
 };
-const server = new Server({name:"anchr-blender",version:"0.2.0"},{capabilities:{tools:{}}});
+
 const definitions = [
  {name:"blender_status",description:"Check the bundled local Blender runtime and output folder. No paid API.",inputSchema:{type:"object",properties:{}}},
  {name:"blender_generate_model",description:"Generate a deterministic Blender model, material variant, PNG preview, GLB export, and native .blend file. Works locally and is more capable than Roblox primitives, but procedural quality cannot match trained text-to-3D services. Uses a constrained plan. Animations are simple articulated keyframes, not motion-captured or Roblox R15-compatible by default.",inputSchema},
  {name:"blender_generate_animation",description:"Generate a simple idle/walk/run/attack animated version of a humanoid/creature model; exports an animated GLB with basic pivot animation. Requires rig review and Roblox retargeting for R15.",inputSchema:{...inputSchema,required:["name","animation"]}},
  {name:"blender_list_outputs",description:"List the last 15 Anchr-generated mesh job folders, so the user can review previews and import GLB using Roblox Studio's 3D Importer.",inputSchema:{type:"object",properties:{}}}
 ];
-server.setRequestHandler(ListToolsRequestSchema,async()=>({tools:definitions}));
+
 function safeText(value){return {content:[{type:"text",text:typeof value==="string"?value:JSON.stringify(value,null,2)}]};}
 function fail(message){return {isError:true,content:[{type:"text",text:message}]};}
 function validate(args){
@@ -71,7 +69,7 @@ async function runBlender(plan){
  return {outputFolder:folder,model:join(folder,"model.glb"),blend:join(folder,"model.blend"),preview:join(folder,"preview.png"),report,
  instructions:"Open Roblox Studio > Avatar or Home > Import 3D and choose model.glb. Review scale and rig. Automated GLB imports require Studio-specific permissions and are not assumed to work."};
 }
-server.setRequestHandler(CallToolRequestSchema,async(request)=>{
+async function handleTool(request){
  try {
    const {name,arguments:args}=request.params;
    if(name==="blender_status")return safeText({available:!!blender&&existsSync(blender),blenderExecutable:blender,outputFolder:outputs,bundled:true});
@@ -93,5 +91,23 @@ server.setRequestHandler(CallToolRequestSchema,async(request)=>{
    return fail("Unknown Blender tool: "+name);
  }catch(e){return fail(e instanceof Error?e.message:String(e))}
 });
-const transport=new StdioServerTransport();
-await server.connect(transport);
+// Minimal standards-compliant MCP JSON-RPC 2.0 stdio adapter.
+const reader=createInterface({input:process.stdin,crlfDelay:Infinity});
+function send(id,result,error){
+  process.stdout.write(JSON.stringify(error?{jsonrpc:"2.0",id,error}:{jsonrpc:"2.0",id,result})+"\\n");
+}
+for await(const line of reader){
+  if(!line.trim())continue;
+  let message;
+  try{message=JSON.parse(line);}catch{continue;}
+  if(message.id===undefined||message.id===null)continue;
+  const {id,method}=message;
+  try{
+    if(method==="initialize"){
+      send(id,{protocolVersion:"2025-06-18",capabilities:{tools:{listChanged:false}},serverInfo:{name:"anchr-blender",version:"0.2.0"}});
+    }else if(method==="ping")send(id,{});
+    else if(method==="tools/list")send(id,{tools:definitions});
+    else if(method==="tools/call")send(id,await handleTool({params:message.params||{}}));
+    else send(id,undefined,{code:-32601,message:"Unknown MCP method: "+method});
+  }catch(e){send(id,undefined,{code:-32603,message:e instanceof Error?e.message:String(e)});}
+}

@@ -49,6 +49,30 @@ CI builds use the same steps. No npm installation is required for users of the p
 For secure testing, use a fresh Roblox Studio project before allowing AI editing tools to modify a production place.
 
 
+## Creative workflow v0.3 (experimental, Anchr by Stone)
+
+The creative workflow is designed for a single chat to **inspect → implement → test → review** across Roblox Studio, Figma and Blender. These are three complementary sources of context, not separate AI chat systems. Studio editing/playtesting still requires a connected Studio session and user consent for changes.
+
+### Figma design context (read-only)
+
+Paste a Figma Design file/frame link in chat or in **Settings → Creative Tools**. Connect your own Figma personal access token with the `file_content:read` scope. Anchr's **figma_get_design_context** MCP tool now exposes a bounded tree of frames, text, colors, dimensions, and auto-layout for the coding model. This follows the reduced-design-context approach popularized by [GLips/Framelink Figma Context MCP](https://github.com/GLips/Figma-Context-MCP) (MIT, © Graham Lipsman), while **preserving Anchr's own encrypted-token loopback bridge** rather than starting a conflicting second Figma server. UI application to Roblox still requires review and explicit approval; images/vectors must be uploaded to Roblox separately.
+
+### Live Blender editing (explicit opt-in)
+
+The existing bundled generator is a **legacy procedural prototype**, and cannot deliver detailed prompt-to-3D character quality. For iterative scene creation, users can opt into the independent [ahujasid/mcp-for-blender](https://github.com/ahujasid/mcp-for-blender) (MIT, © Siddharth Ahuja):
+
+1. Install Python-compatible **uv/uvx** (e.g. `winget install --id=astral-sh.uv -e` on Windows), install and enable the community add-on in a trusted Blender installation following the upstream manual instructions, and start the add-on's MCP server from Blender's sidebar.
+2. In Anchr **Settings → Creative Tools**, check **Enable live Blender MCP**, optionally set the full path to `uvx.exe`, save, then restart Anchr. Anchr runs pinned `mcp-for-blender==2.2.2` through uvx when enabled.
+3. In Anchr chat, ask to inspect the Blender scene, create objects, refine materials, preview a result, and verify it visually. Export to GLB for Roblox and review before importing.
+
+Anchr passes `BLENDER_MCP_SAFE_MODE=1`, `BLENDER_HOST=127.0.0.1` and port `9876`. **Important:** The community add-on can execute Python code. Safe mode filters agent-originated scripts but is **not a security sandbox**; the localhost add-on socket itself has no authentication. Never expose that socket to the network, do not run unknown scripts blindly, and use backups before editing important scenes. External 3D generation services and asset providers can require accounts, licenses and payment. No cloud text-to-3D quality is promised. Disabling this option restores Anchr's bundled procedural MCP after restart.
+
+### Roblox visual references
+
+Creative Tools now searches an index of [izzyfrm/roblox-ai](https://github.com/izzyfrm/roblox-ai) and Openverse/Wikimedia. This catalog is a **reference source only**. The app links to original images rather than bundling or copying thousands of third-party game images. Copyright and attribution belong to their respective owners. Study composition, hierarchy and style and implement an original Roblox design; do not redistribute artwork without permission. Existing visual-search chat prompts can also retrieve references.
+
+These projects are independent and not rebranded upstream packages. The Anchr UI and integrated workflow remain Anchr by Stone.
+
 ## Creative Tools (v0.2.0 experimental)
 
 Go to **Settings → Creative Tools**. The Windows installer bundles Blender 4.5.15 headless, a local Blender MCP worker, and 24 free transparent PNG icons. The normal workflow is:

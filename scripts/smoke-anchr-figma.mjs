@@ -11,7 +11,7 @@ const transport=new StdioClientTransport({command:process.execPath,args:[worker]
 try{
   await client.connect(transport);
   const {tools}=await client.listTools();
-  for(const name of ["figma_list_frames","figma_generate_roblox_ui"])
+  for(const name of ["figma_list_frames","figma_get_design_context","figma_generate_roblox_ui"])
     assert(tools.some(t=>t.name===name),"Missing Figma MCP tool "+name);
   const unauth=await client.callTool({name:"figma_list_frames",arguments:{url:"https://www.figma.com/design/TEST/Untitled"}});
   assert(unauth.isError,"Standalone Figma worker must deny unavailable connector");

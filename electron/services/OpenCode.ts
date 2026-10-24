@@ -309,8 +309,20 @@ function prepareOpenCode(
       } catch { /* First launch or invalid stored config — no custom provider yet. */ }
       return null;
     });
+    // Read the explicit live-Blender opt-in independently of provider credentials.
+    const blenderLive = yield* Effect.promise(async () => {
+      try {
+        if (!options.userConfigPath) return {enabled:false,executable:""};
+        const saved = JSON.parse(await readFile(options.userConfigPath,"utf8")) as {
+          blenderLiveEnabled?:boolean;blenderLiveUvxPath?:string;
+        };
+        return {enabled:saved.blenderLiveEnabled===true,
+          executable:typeof saved.blenderLiveUvxPath==="string"&&saved.blenderLiveUvxPath.length<512
+            ?saved.blenderLiveUvxPath.trim():""};
+      } catch { return {enabled:false,executable:""}; }
+    });
     const figmaBridge = yield* Effect.promise(() => getFigmaBridge());
-    const config = createOpenCodeConfig(broker.info, customEndpoint, figmaBridge);
+    const config = createOpenCodeConfig(broker.info, customEndpoint, figmaBridge, blenderLive);
     yield* fileOperation("Failed to write the OpenCode configuration", () =>
       writeFile(
         join(configDirectory, "opencode.json"),

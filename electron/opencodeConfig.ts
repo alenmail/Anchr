@@ -52,7 +52,7 @@ export function anchrCompatibleProvider(endpoint: NonNullable<AppConfig["customE
   };
 }
 
-export function createOpenCodeConfig(broker: { url: string }, endpoint: AppConfig["customEndpoint"] = null) {
+export function createOpenCodeConfig(broker: { url: string }, endpoint: AppConfig["customEndpoint"] = null, figmaBridge: { url: string; secret: string } | null = null) {
   return {
     // Keep OpenCode's standard automatic context compaction enabled for long sessions.
     compaction: {
@@ -60,6 +60,17 @@ export function createOpenCodeConfig(broker: { url: string }, endpoint: AppConfi
     },
     provider: endpoint ? { "anchr-compatible": anchrCompatibleProvider(endpoint) } : {},
     mcp: {
+      ...(figmaBridge ? { "anchr-figma": {
+        type: "local" as const,
+        command: [process.execPath, join(process.resourcesPath, "anchr-mcp", "node_modules", "anchr-figma-mcp.mjs")],
+        environment: {
+          ELECTRON_RUN_AS_NODE: "1",
+          ANCHR_FIGMA_BRIDGE_URL: figmaBridge.url,
+          ANCHR_FIGMA_BRIDGE_TOKEN: figmaBridge.secret,
+        },
+        timeout: 10000,
+        enabled: true,
+      }} : {}),
       "anchr-blender": {
         type: "local",
         command: [
@@ -91,6 +102,7 @@ export function createOpenCodeConfig(broker: { url: string }, endpoint: AppConfi
           "Use Anchr Studio tools (the Chrrxs MCP server). Start by calling get_connected_instances and use instance_id to scope calls. " +
           "Inspect with get_project_structure, search_objects, and get_instance_properties before editing. Edit scripts with edit_script_lines or set_script_source. " +
           "Playtest and read runtime logs when applicable. The built-in Roblox Studio MCP server is not used. " +
+          "When a user provides a Figma file and asks to implement a UI, use anchr-figma MCP to inspect and generate Luau, then ask for review before inserting it. Complex icons and vectors require uploaded Roblox asset IDs. " +
           "For detailed 3D meshes or animations, prefer the anchr-blender MCP tools rather than assembling crude Roblox primitives. " +
           "Use blender_status first; generate_model creates a GLB, .blend file and preview for user review. " +
           "Select an archetype and ask for silhouette, materials, rig and style if needed. Do not promise commercial text-to-3D fidelity. " +

@@ -95,6 +95,7 @@ copyFileSync(built, join(pkg, "studio-plugin", "MCPPlugin.rbxmx"));
 copyFileSync(join(studio, "LICENSE"), join(stage, "CHRRXS-LICENSE"));
 // Stage the local Blender MCP worker next to the installed MCP SDK so Node can resolve it.
 copyFileSync(join(root, "creative", "blender-mcp.mjs"), join(stage, "node_modules", "anchr-blender-mcp.mjs"));
+copyFileSync(join(root, "creative", "figma-mcp.mjs"), join(stage, "node_modules", "anchr-figma-mcp.mjs"));
 copyFileSync(join(root, "creative", "blender_backend.py"), join(stage, "node_modules", "anchr-blender-backend.py"));
 console.log(`[Anchr] Blender MCP worker staged.`);
 console.log(`[Anchr] Bundled Studio plugin; toolbar icon: ${toolbarIconId ? `asset ${toolbarIconId}` : "Anchr text (no legacy M icon)"}.`);

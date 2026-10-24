@@ -58,6 +58,8 @@ jobs:
         run: node scripts/smoke-anchr-blender.mjs
       - name: Verify MCP handshake and Chrrxs tools
         run: node scripts/smoke-anchr-mcp.mjs
+      - name: Verify bundled Figma MCP and credential isolation
+        run: node scripts/smoke-anchr-figma.mjs
       - name: Typecheck Electron main process
         run: pnpm exec tsc -p electron/tsconfig.json --noEmit
       - name: Typecheck Anchr UI

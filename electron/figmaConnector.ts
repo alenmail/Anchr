@@ -54,13 +54,14 @@ function luau(n:Node){
     'local gui = Instance.new("ScreenGui")','gui.Name = '+JSON.stringify("Anchr_"+n.name.slice(0,50)),
     "gui.ResetOnSpawn = false",'gui.Parent = game:GetService("StarterGui")'];
   const skipped:string[]=[];let count=0;
-  function walk(x:Node,depth=0){
+  function walk(x:Node,depth=0,parentName="gui",parentBounds=bounds){
     if(x.visible===false||depth>10||count>=200)return;
     const id="i"+(++count),b=x.absoluteBoundingBox;
     const type=x.type==="TEXT"?"TextLabel":/button|btn/i.test(x.name)?"TextButton":/VECTOR|IMAGE/.test(x.type)?"TextLabel":"Frame";
     out.push("local "+id+" = Instance.new("+JSON.stringify(type)+")");
     out.push(id+".Name = "+JSON.stringify(x.name.slice(0,75)));
-    out.push(id+".Position = UDim2.fromOffset("+Math.round((b?.x||0)-bounds.x)+","+Math.round((b?.y||0)-bounds.y)+")");
+    // Figma gives absolute coordinates; Roblox child positions must be local to their parent.
+    out.push(id+".Position = UDim2.fromOffset("+Math.round((b?.x??parentBounds.x)-parentBounds.x)+","+Math.round((b?.y??parentBounds.y)-parentBounds.y)+")");
     out.push(id+".Size = UDim2.fromOffset("+Math.max(1,Math.round(b?.width||90))+","+Math.max(1,Math.round(b?.height||36))+")");
     const fill=x.fills?.find(f=>f.type==="SOLID"&&f.visible!==false);
     out.push(id+(fill?.color?".BackgroundColor3 = "+color(fill.color):".BackgroundTransparency = 1"));
@@ -72,8 +73,8 @@ function luau(n:Node){
     }
     if(/VECTOR|IMAGE/.test(x.type))skipped.push(x.name);
     if(x.cornerRadius){out.push('local c'+count+' = Instance.new("UICorner")');out.push("c"+count+".CornerRadius = UDim.new(0,"+Math.min(100,Math.round(x.cornerRadius))+")");out.push("c"+count+".Parent = "+id);}
-    out.push(id+".Parent = gui");
-    for(const child of x.children||[])walk(child,depth+1);
+    out.push(id+".Parent = "+parentName);
+    for(const child of x.children||[])walk(child,depth+1,id,b||parentBounds);
   }
   walk(n);
   return {code:out.join("\n")+"\n",convertedNodes:count,unconvertedVisuals:skipped};

@@ -25,6 +25,8 @@ export const AppConfigSchema = Schema.mutable(
     theme: ThemePreferenceSchema,
     pinnedToScreen: Schema.Boolean,
     onboardingCompleted: Schema.Boolean,
+    blenderLiveEnabled: Schema.Boolean,
+    blenderLiveUvxPath: Schema.String,
     customEndpoint: Schema.NullOr(Schema.Struct({ baseURL: Schema.String, modelId: Schema.String })),
     detailedAnalytics: DetailedAnalyticsPreferenceSchema,
     // Highest analytics policy notice the user has seen; 0 predates the opt-out model.
@@ -42,6 +44,8 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   theme: "dark",
   pinnedToScreen: false,
   onboardingCompleted: false,
+  blenderLiveEnabled: false,
+  blenderLiveUvxPath: "",
   customEndpoint: null,
   detailedAnalytics: "disabled",
   analyticsNoticeVersion: 2,

@@ -122,8 +122,10 @@ export default function CreativeToolsPanel(){
         localhost socket has no authentication and safe mode is not a full sandbox. Use only with trusted projects; keep port 9876 local.
         Downloaded models and external assets may require accounts, permissions or payment. Restart Anchr after changing settings.</p>
     </section>
-    <section className="space-y-3 rounded-xl border border-white/10 bg-white/[.025] p-4">
-      <div className="flex items-center justify-between gap-2"><h4 className="flex items-center gap-2 text-[13px] font-semibold"><Box size={16}/> Basic procedural generator (legacy)</h4>
+    <details className="rounded-xl border border-white/10 bg-white/[.025]">
+      <summary className="cursor-pointer p-4 text-[12px] text-muted-foreground">Legacy procedural generator — rough templates only (expand)</summary>
+      <section className="space-y-3 px-4 pb-4">
+        <div className="flex items-center justify-between gap-2"><h4 className="flex items-center gap-2 text-[13px] font-semibold"><Box size={16}/> Basic procedural generator</h4>
         <span className={"text-[10px] "+(runtime?.available?"text-emerald-400":"text-amber-300")}>{runtime?.available?"Local runtime ready":"Runtime not found"}</span>
       </div>
       <p className="text-[11px] leading-5 text-muted-foreground">Creates rough template geometry, a .blend file, and a GLB preview. Not suitable for detailed creatures or professional animation. Use live Blender MCP for iterative scene work.</p>
@@ -151,7 +153,8 @@ export default function CreativeToolsPanel(){
         <button type="button" className={btn} disabled={modelBusy||!refinement.trim()} onClick={()=>{setConcept(refinement);setMessage("Refinement added to the design. Click Generate and export model to create a revised GLB.");}}>Use refinement in next version</button>
         <p className="text-[10px] text-muted-foreground">Use Roblox Studio's File → Import 3D for the GLB. Rigging and animation retargeting may need manual adjustment.</p>
       </div>}
-    </section>
+      </section>
+    </details>
     <section className="space-y-3 rounded-xl border border-white/10 bg-white/[.025] p-4">
       <div className="flex justify-between gap-2"><h4 className="flex items-center gap-2 text-[13px] font-semibold"><Layers size={16}/> Figma → Roblox UI</h4><span className="text-[10px] text-slate-400">{figmaActive?"Connected":"Not connected"}</span></div>
       <p className="text-[11px] leading-5 text-muted-foreground">Import frames, text, positions and solid fills from designs you can access. Image/vector layers need asset IDs uploaded to Roblox.</p>

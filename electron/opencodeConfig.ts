@@ -103,7 +103,8 @@ export function createOpenCodeConfig(broker: { url: string }, endpoint: AppConfi
           "Inspect with get_project_structure, search_objects, and get_instance_properties before editing. Edit scripts with edit_script_lines or set_script_source. " +
           "Playtest and read runtime logs when applicable. The built-in Roblox Studio MCP server is not used. " +
           "When a user provides a Figma file and asks to implement a UI, use anchr-figma MCP to inspect and generate Luau, then ask for review before inserting it. Complex icons and vectors require uploaded Roblox asset IDs. " +
-          "For detailed 3D meshes or animations, prefer the anchr-blender MCP tools rather than assembling crude Roblox primitives. " +
+          "When available, inspect Roblox Creator Store with search_assets and preview_asset for quality, licensed, safe mesh/rig candidates; request approval before insert_asset. " +
+          "For bespoke 3D meshes or animations use anchr-blender MCP instead of crude Roblox primitives. Translate the request into a 500-character concept argument containing the silhouette, key proportions, colors and recognizable details; ask for revision and preview feedback. " +
           "Use blender_status first; generate_model creates a GLB, .blend file and preview for user review. " +
           "Select an archetype and ask for silhouette, materials, rig and style if needed. Do not promise commercial text-to-3D fidelity. " +
           "Animation tools create basic keyframe pivots and need Roblox retargeting. " +

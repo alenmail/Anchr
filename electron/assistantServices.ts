@@ -193,11 +193,53 @@ async function jsonFrom(url: string): Promise<any> {
   return JSON.parse(text);
 }
 
+/**
+ * Curated Roblox visual reference index. Only links to source images; nothing
+ * from this third-party catalog is redistributed or imported as a game asset.
+ * Individual images may be copyrighted and are untrusted reference material.
+ */
+let robloxReferenceCache: {paths:string[];loadedAt:number}|null=null;
+async function searchRobloxReferenceCatalog(term:string):Promise<WebReference[]>{
+  const now=Date.now();
+  if(!robloxReferenceCache||now-robloxReferenceCache.loadedAt>30*60*1000){
+    const res=await fetch("https://api.github.com/repos/izzyfrm/roblox-ai/git/trees/main?recursive=1",{
+      headers:{Accept:"application/vnd.github+json","User-Agent":"Anchr-visual-references"},
+      signal:AbortSignal.timeout(12000)});
+    if(!res.ok)throw Error("Roblox visual reference library unavailable");
+    const body=await res.text();
+    if(body.length>5_000_000)throw Error("Visual reference catalog too large");
+    const data=JSON.parse(body) as {truncated?:boolean;tree?:Array<{path:string;type:string}>};
+    if(data.truncated||!Array.isArray(data.tree))throw Error("Incomplete visual reference catalog");
+    const prefixes=["previews/","ui-styles/","visual-refs/","style-refs/","game-refs/","vfx/","logos/","thumbnails/","animations/"];
+    const paths=data.tree.filter(entry=>entry.type==="blob"&&
+        prefixes.some(prefix=>entry.path.startsWith(prefix))&&
+        /\\.(png|jpe?g|webp|gif)$/i.test(entry.path))
+      .map(entry=>entry.path);
+    robloxReferenceCache={paths,loadedAt:now};
+  }
+  const words=term.toLowerCase().match(/[a-z0-9]+/g)?.filter(w=>w.length>2).slice(0,6)||[];
+  const ranked=robloxReferenceCache.paths.map(path=>{
+    const normalized=path.toLowerCase().replace(/[-_]/g," ");
+    const name=path.split("/").pop()?.toLowerCase().replace(/[-_]/g," ")||"";
+    const matches=words.filter(w=>normalized.includes(w));
+    return {path,score:matches.reduce((n,w)=>n+(name.includes(w)?3:1),0)};
+  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.path.localeCompare(b.path)).slice(0,6);
+  return ranked.map(({path})=>{
+    const encoded=path.split("/").map(encodeURIComponent).join("/");
+    return {title:path.split("/").pop()!.replace(/[-_]/g," ").replace(/\\.[^.]+$/,"").slice(0,130),
+      url:"https://github.com/izzyfrm/roblox-ai/blob/main/"+encoded,
+      imageUrl:"https://raw.githubusercontent.com/izzyfrm/roblox-ai/main/"+encoded,
+      description:"Roblox visual reference library · inspiration only; image rights remain with original creators."};
+  });
+}
+
 export async function findVisualReferences(input: string): Promise<WebReference[]> {
   if (typeof input !== "string" || !input.trim() || input.length > 250)
     throw new Error("Use a short visual reference search");
   const term = input.trim();
-  const results: WebReference[] = [];
+  // Prefer specialized Roblox UI / game art references where available.
+  const results: WebReference[] = await searchRobloxReferenceCatalog(term)
+    .catch(error=>{console.warn("[Anchr] Roblox reference catalog unavailable:",error);return [];});
   // Openverse indexes openly-licensed visual references across providers;
   // it has a documented free anonymous search API with its own rate limits.
   try {
@@ -228,7 +270,9 @@ export async function findVisualReferences(input: string): Promise<WebReference[
     gsrnamespace: "6", gsrlimit: "8", prop: "imageinfo",
     iiprop: "url|extmetadata", iiurlwidth: "640", format: "json", formatversion: "2",
   })) url.searchParams.set(key, value);
-  const data = await jsonFrom(url.toString());
+  let data: any = {};
+  try { data = await jsonFrom(url.toString()); }
+  catch(error){ console.warn("[Anchr] Wikimedia visual reference search unavailable:",error); }
   const pages = (data.query?.pages ?? []) as any[];
   for (const page of pages) {
     const image = page.imageinfo?.[0];

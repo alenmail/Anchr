@@ -1,7 +1,7 @@
 {
   "name": "anchr",
   "private": true,
-  "version": "0.1.4-beta.3",
+  "version": "0.2.0-beta.1",
   "description": "Anchr — AI-powered Roblox Studio development by Stone",
   "type": "module",
   "main": "dist-electron/main/main.js",
@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "package": "pnpm icons:anchr && pnpm build && pnpm stage:anchr-mcp && electron-builder",
+    "package": "pnpm icons:anchr && pnpm icons:creative && pnpm build && pnpm stage:anchr-mcp && electron-builder",
     "preview": "vite preview",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
@@ -24,7 +24,9 @@
     "typecheck": "tsc --noEmit && tsc -p electron/tsconfig.json --noEmit && tsc -p scripts/tsconfig.json --noEmit && tsc -p scripts/bloxbot-programs/tsconfig.json --noEmit",
     "bloxbot-programs": "jiti scripts/bloxbot-programs/cli.ts",
     "stage:anchr-mcp": "node scripts/stage-anchr-mcp.mjs",
-    "icons:anchr": "python scripts/make-icons.py"
+    "icons:anchr": "python scripts/make-icons.py",
+    "icons:creative": "python scripts/make-creative-icons.py",
+    "prepare:blender": "powershell -ExecutionPolicy Bypass -File scripts/prepare-blender.ps1"
   },
   "dependencies": {
     "@lexical/react": "^0.48.0",

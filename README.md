@@ -47,3 +47,20 @@ CI builds use the same steps. No npm installation is required for users of the p
 **App updates:** Settings → About → **Check for updates** checks official Anchr GitHub Releases. If a newer compatible release is available, **Install and restart** downloads and installs it. Updates are user-initiated. v0.1.3 and earlier don't contain this update mechanism and need a one-time manual installation of a newer version.
 
 For secure testing, use a fresh Roblox Studio project before allowing AI editing tools to modify a production place.
+
+
+## Creative Tools (v0.2.0 experimental)
+
+Go to **Settings → Creative Tools**. The Windows installer bundles Blender 4.5.15 headless, a local Blender MCP worker, and 24 free transparent PNG icons. The normal workflow is:
+
+1. Ask Anchr to use **anchr-blender** MCP to generate a model. It will choose an archetype, materials and one of the basic idle/walk/run/attack presets.
+2. Preview the exported `preview.png`, review/edit `model.blend`, and import `model.glb` with **Roblox Studio → File → Import 3D**. Roblox supports glTF/FBX via its official importer; Studio-specific user authorization is needed for asset imports.
+3. For Figma, use **Settings → Creative Tools → Connect Figma** with a personal API token granting `file_content:read`, paste the file URL, choose a frame, generate Luau and **explicitly approve** applying it to connected Studio. Tokens are encrypted using OS secure storage, never sent to AI models.
+4. The icon pack opens as PNGs; Roblox images still need to be uploaded using your creator permissions before they can be displayed in a live game.
+5. Manage new Anchr versions in **Settings → Updates**. The app already uses Electron's GitHub prerelease update channel.
+
+**Limitations:** This is a deterministic procedural Blender backend, not a trained text-to-3D model. It produces proper mesh files and basic keyframes but cannot guarantee photorealistic characters, R15-ready rigs or production-quality animations. Figma import maps frames/text/basic styling; images and vectors are explicitly marked for manual asset upload. No paid APIs are mandatory beyond the user-selected text model, but Figma access remains account-specific and external references can have their own rules.
+
+### Local builds
+
+On Windows run `pnpm install`, `pnpm prepare:blender`, `pnpm icons:anchr`, `pnpm icons:creative`, `pnpm stage:anchr-mcp`, `pnpm build`, then `pnpm exec electron-builder --win nsis --publish never`. Downloaded Blender files are SHA-256 validated and not committed to Git. The bundled Blender makes the installer several hundred megabytes larger. All third-party licenses must be retained during redistribution.

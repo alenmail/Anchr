@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import ProviderCheckPopover from "@/components/ProviderCheckPopover";
 import CompatibleProviderPanel from "@/components/CompatibleProviderPanel";
 import VisionBridgePanel from "@/components/VisionBridgePanel";
+import CreativeToolsPanel from "@/components/CreativeToolsPanel";
+import UpdatesPanel from "@/components/UpdatesPanel";
 import ProviderConnectDialog from "@/components/ProviderConnectDialog";
 import ProviderLogo from "@/components/ProviderLogo";
 import { THEME_OPTIONS, type Theme, useTheme } from "@/components/theme-provider";
@@ -51,7 +53,7 @@ function hasOutsideZenKey(provider: ProviderInfo): boolean {
   return provider.id === "opencode" && !isFreeZen(provider) && !hasZenKey(provider);
 }
 
-type SettingsTab = "providers" | "models" | "appearance" | "privacy" | "about";
+type SettingsTab = "providers" | "models" | "creative" | "updates" | "appearance" | "privacy" | "about";
 
 interface SettingsProps {
   onClose: () => void;
@@ -147,6 +149,10 @@ function Settings({ onClose }: SettingsProps) {
             Models
           </button>
 
+          <button type="button" onClick={() => setTab("creative")}
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-2.5 py-1.5 text-left text-xs transition-colors @xl:mx-1.5 ${tab==="creative"?"bg-accent font-medium text-foreground":"text-muted-foreground hover:bg-accent hover:text-foreground"}`}>
+            ✦ Creative Tools
+          </button>
           <div className="mt-4 hidden px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground @xl:block">
             App
           </div>
@@ -172,6 +178,10 @@ function Settings({ onClose }: SettingsProps) {
               <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
             </svg>
             Appearance
+          </button>
+          <button type="button" onClick={() => setTab("updates")}
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-2.5 py-1.5 text-left text-xs transition-colors @xl:mx-1.5 ${tab==="updates"?"bg-accent font-medium text-foreground":"text-muted-foreground hover:bg-accent hover:text-foreground"}`}>
+            ↓ Updates
           </button>
           <button
             onClick={() => setTab("about")}
@@ -226,6 +236,8 @@ function Settings({ onClose }: SettingsProps) {
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
           {tab === "providers" && <ProvidersTab />}
           {tab === "models" && <ModelsTab />}
+          {tab === "creative" && <CreativeToolsPanel />}
+          {tab === "updates" && <UpdatesPanel />}
           {tab === "appearance" && <AppearanceTab />}
           {tab === "privacy" && <PrivacyTab />}
           {tab === "about" && <AboutTab appVersion={appVersion} />}

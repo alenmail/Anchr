@@ -8,6 +8,7 @@ import { networkConnections, type Systeminformation } from "systeminformation";
 
 import type { OpenCodeInfo, OpenCodeStartupProgress } from "../../src/types/desktop";
 import { createOpenCodeConfig } from "../opencodeConfig";
+import { getFigmaBridge } from "../figmaConnector";
 import { ensureOpenCodeBinary } from "./OpenCodeBinary";
 import { StudioMcpBroker } from "./StudioMcpBroker";
 
@@ -308,7 +309,8 @@ function prepareOpenCode(
       } catch { /* First launch or invalid stored config — no custom provider yet. */ }
       return null;
     });
-    const config = createOpenCodeConfig(broker.info, customEndpoint);
+    const figmaBridge = yield* Effect.promise(() => getFigmaBridge());
+    const config = createOpenCodeConfig(broker.info, customEndpoint, figmaBridge);
     yield* fileOperation("Failed to write the OpenCode configuration", () =>
       writeFile(
         join(configDirectory, "opencode.json"),

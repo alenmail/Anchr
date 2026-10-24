@@ -130,6 +130,15 @@ export interface DesktopApi {
   getPinnedState(): Promise<boolean>;
   setPinnedState(pinned: boolean): Promise<boolean>;
   discoverCompatibleModels(baseURL: string, apiKey: string): Promise<Array<{ id: string; name: string }>>;
+  blenderStatus(): Promise<{ available: boolean; runtimeBundled: boolean; engine: string; outputDirectory: string }>;
+  blenderCreateModel(plan: { name: string; concept?: string; archetype: "creature"|"character"|"humanoid"|"vehicle"|"building"|"architecture"|"prop"; style?: "stylized"|"realistic"|"lowpoly"; animation?: "none"|"idle"|"walk"|"run"|"attack"; detail?: number }): Promise<{ folder: string; preview: string; model: string; native: string; report: { objects: number; archetype: string; animation: string } }>;
+  openCreativeFile(path: string): Promise<void>;
+  openIconFolder(): Promise<void>;
+  figmaConfigured(): Promise<boolean>;
+  setFigmaToken(token: string): Promise<boolean>;
+  figmaFrames(url: string): Promise<{ name: string; frames: Array<{ id: string; name: string }>; selected: string }>;
+  figmaGenerateUi(url: string, id: string): Promise<{ code: string; file: string; convertedNodes: number; unconvertedVisuals: string[] }>;
+  figmaApplyUi(source: string): Promise<unknown>;
   visionConfigured(): Promise<boolean>;
   listVisionModels(): Promise<Array<{ id: string; label: string }>>;
   getVisionModel(): Promise<string>;

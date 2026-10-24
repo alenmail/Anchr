@@ -7,6 +7,7 @@ on:
       - build/anchr-desktop-and-plugin
       - feature/anchr-v0.1.4-assistant-workflows
       - fix/gemini-vision-model-404
+      - feature/creative-toolchain-v0.2
 
 permissions:
   contents: write
@@ -14,7 +15,7 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
-    timeout-minutes: 50
+    timeout-minutes: 120
     steps:
       - name: Checkout application and Chrrxs source
         uses: actions/checkout@v4
@@ -38,12 +39,27 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Generate Anchr desktop icons
         run: pnpm icons:anchr
+      - name: Generate bundled Anchr icons
+        run: python scripts/make-creative-icons.py
+      - name: Download verified portable Blender runtime
+        shell: pwsh
+        run: ./scripts/prepare-blender.ps1
       - name: Bundle MCP server and compile Anchr Studio plugin
         env:
           ANCHR_STUDIO_ICON_ASSET_ID: ${{ vars.ANCHR_STUDIO_ICON_ASSET_ID }}
         run: pnpm stage:anchr-mcp
+      - name: Validate bundled Blender backend
+        shell: pwsh
+        run: |
+          $script = 'import sys, bpy; print("ANCHR_BLENDER_CI_OK", bpy.app.version_string)'
+          ./vendor/blender-runtime/blender.exe -b --factory-startup --python-expr $script
+          if ($LASTEXITCODE -ne 0) { throw "Blender startup failed" }
+      - name: Verify Blender MCP handshake and generate a sample GLB
+        run: node scripts/smoke-anchr-blender.mjs
       - name: Verify MCP handshake and Chrrxs tools
         run: node scripts/smoke-anchr-mcp.mjs
+      - name: Verify bundled Figma MCP and credential isolation
+        run: node scripts/smoke-anchr-figma.mjs
       - name: Typecheck Electron main process
         run: pnpm exec tsc -p electron/tsconfig.json --noEmit
       - name: Typecheck Anchr UI
@@ -69,15 +85,15 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.4-beta.3
-          name: Anchr v0.1.4 (beta 2)
+          tag_name: v0.2.0-beta.1
+          name: Anchr v0.2.0 (creative tools beta)
           target_commitish: ${{ github.sha }}
           prerelease: true
           generate_release_notes: false
           body: |
-            Anchr v0.1.4 beta 3: fixes Gemini vision HTTP 404 for new accounts by using the current Flash-Lite model and allowing model selection from the models returned by your API key. Includes readable provider errors.
+            Anchr v0.2.0 beta 1: bundles local Blender 4.5.15 for procedural models/animation, a Blender MCP server, secure Figma frame-to-Luau import, a local PNG icon pack, and a dedicated Updates tab. These are initial pipelines, not professional automatic text-to-3D or R15 retargeting.
             This is an unsigned prerelease. Install only if you trust the project.
-            Live Roblox Studio integration still requires testing.
+            Live Roblox Studio imports, Figma user access, and animated rig retargeting still require hands-on testing.
           files: |
             release/*.exe
             release/beta.yml

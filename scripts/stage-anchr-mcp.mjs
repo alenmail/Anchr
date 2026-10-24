@@ -86,11 +86,16 @@ const built = join(plugin, "MCPPlugin.rbxmx");
 if (!existsSync(built)) throw new Error("Anchr plugin build did not produce MCPPlugin.rbxmx");
 
 mkdirSync(stage, { recursive: true });
-run(npm, ["install", "--prefix", stage, "--no-save", "--omit=dev", "--no-audit", "--no-fund", "@chrrxs/robloxstudio-mcp@3.3.0"]);
+run(npm, ["install", "--prefix", stage, "--no-save", "--omit=dev", "--no-audit", "--no-fund", "@chrrxs/robloxstudio-mcp@3.3.0", "@modelcontextprotocol/sdk@1.26.0"]);
 const cli = join(pkg, "dist", "index.js");
 if (!existsSync(cli)) throw new Error("Bundled Chrrxs MCP server executable missing");
 mkdirSync(join(pkg, "studio-plugin"), { recursive: true });
 copyFileSync(built, join(pkg, "studio-plugin", "MCPPlugin.rbxmx"));
 // Keep the upstream license with the redistributed server.
 copyFileSync(join(studio, "LICENSE"), join(stage, "CHRRXS-LICENSE"));
+// Stage the local Blender MCP worker next to the installed MCP SDK so Node can resolve it.
+copyFileSync(join(root, "creative", "blender-mcp.mjs"), join(stage, "node_modules", "anchr-blender-mcp.mjs"));
+copyFileSync(join(root, "creative", "figma-mcp.mjs"), join(stage, "node_modules", "anchr-figma-mcp.mjs"));
+copyFileSync(join(root, "creative", "blender_backend.py"), join(stage, "node_modules", "anchr-blender-backend.py"));
+console.log(`[Anchr] Blender MCP worker staged.`);
 console.log(`[Anchr] Bundled Studio plugin; toolbar icon: ${toolbarIconId ? `asset ${toolbarIconId}` : "Anchr text (no legacy M icon)"}.`);

@@ -45,6 +45,57 @@ export async function listFigmaFrames(raw:string){
   walk(data.document);
   return {name:data.name||"Figma file",frames,selected:ref.id||""};
 }
+/**
+ * Read-only, bounded Figma design context for the coding agent.
+ * Inspired by GLips/Figma-Context-MCP's reduced-layout approach, without
+ * duplicating its token handling or installing a second Figma MCP server.
+ */
+export async function getFigmaDesignContext(raw:string,selectedNodeId?:string){
+  const ref=parseUrl(raw);
+  const id=selectedNodeId?.trim().replace(/-/g,":")||ref.id;
+  if(id&&!/^\\d+:\\d+$/.test(id))throw Error("Invalid Figma node ID");
+  const endpoint=id
+    ?"files/"+encodeURIComponent(ref.key)+"/nodes?ids="+encodeURIComponent(id)+"&depth=10"
+    :"files/"+encodeURIComponent(ref.key)+"?depth=7";
+  const data=await request<any>(endpoint);
+  const root:Node|undefined=id?data.nodes?.[id]?.document:data.document;
+  if(!root)throw Error("Figma node could not be read");
+  let count=0;
+  const maxNodes=160,maxDepth=8;
+  function simplify(n:Node,depth=0):Record<string,unknown>|null{
+    if(n.visible===false||depth>maxDepth||count>=maxNodes)return null;
+    count++;
+    const extra=n as Node & {
+      layoutMode?:string;primaryAxisAlignItems?:string;counterAxisAlignItems?:string;
+      itemSpacing?:number;layoutWrap?:string;paddingLeft?:number;paddingTop?:number;
+      paddingRight?:number;paddingBottom?:number;opacity?:number;
+      layoutSizingHorizontal?:string;layoutSizingVertical?:string;
+      strokes?:Array<{type?:string;color?:{r:number;g:number;b:number}}>;
+    };
+    const b=n.absoluteBoundingBox;
+    const solid=n.fills?.find(f=>f.type==="SOLID"&&f.visible!==false)?.color;
+    const children=(n.children||[]).map(c=>simplify(c,depth+1)).filter((v):v is Record<string,unknown>=>v!==null);
+    return {
+      id:n.id,name:n.name.slice(0,100),type:n.type,
+      ...(b?{bounds:{x:b.x,y:b.y,width:b.width,height:b.height}}:{}),
+      ...(extra.layoutMode?{layout:{mode:extra.layoutMode,
+        justify:extra.primaryAxisAlignItems,align:extra.counterAxisAlignItems,
+        gap:extra.itemSpacing,wrap:extra.layoutWrap,
+        padding:[extra.paddingTop,extra.paddingRight,extra.paddingBottom,extra.paddingLeft],
+        horizontalSizing:extra.layoutSizingHorizontal,verticalSizing:extra.layoutSizingVertical}}:{}),
+      ...(solid?{solidFill:solid}:{}),
+      ...(extra.opacity!==undefined?{opacity:extra.opacity}:{}),
+      ...(n.cornerRadius!==undefined?{cornerRadius:n.cornerRadius}:{}),
+      ...(n.type==="TEXT"?{text:(n.characters||"").slice(0,1600),fontSize:n.style?.fontSize,textAlign:n.style?.textAlignHorizontal}:{}),
+      ...(n.type==="VECTOR"||n.type==="IMAGE"?{assetNote:"Visual asset must be uploaded to Roblox separately"}:{}),
+      ...(children.length?{children}:{}),
+    };
+  }
+  const design=simplify(root);
+  return {source:"Figma design context (Anchr; adapted reduced context approach)",
+    readOnly:true,fileKey:ref.key,selectedNode:id||root.id,nodesReturned:count,
+    truncated:count>=maxNodes,design};
+}
 function color(v?:{r:number;g:number;b:number}){
   return "Color3.fromRGB("+[v?.r??.3,v?.g??.33,v?.b??.38].map(x=>Math.max(0,Math.min(255,Math.round(x*255)))).join(",")+")";
 }
@@ -117,7 +168,9 @@ export function getFigmaBridge():Promise<{url:string;secret:string}> {
         const input=JSON.parse(body) as {method?:string;arguments?:{url?:string;nodeId?:string}};
         const args=input.arguments||{};
         let result:unknown;
-        if(input.method==="frames"&&typeof args.url==="string")result=await listFigmaFrames(args.url);
+        if(input.method==="context"&&typeof args.url==="string")
+          result=await getFigmaDesignContext(args.url,args.nodeId);
+        else if(input.method==="frames"&&typeof args.url==="string")result=await listFigmaFrames(args.url);
         else if(input.method==="generate"&&typeof args.url==="string"&&typeof args.nodeId==="string")
           result=await generateFigmaUi(args.url,args.nodeId);
         else throw Error("Invalid Figma request");

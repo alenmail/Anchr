@@ -8,6 +8,7 @@ on:
       - feature/anchr-v0.1.4-assistant-workflows
       - fix/gemini-vision-model-404
       - feature/creative-toolchain-v0.2
+      - feature/connected-creative-workflow-v0.3
 
 permissions:
   contents: write

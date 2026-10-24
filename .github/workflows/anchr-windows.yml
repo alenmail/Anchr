@@ -86,14 +86,14 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.2.0-beta.1
-          name: Anchr v0.2.0 (creative tools beta)
+          tag_name: v0.3.0-beta.1
+          name: Anchr v0.3.0 (connected creative beta)
           target_commitish: ${{ github.sha }}
           prerelease: true
           generate_release_notes: false
           body: |
-            Anchr v0.2.0 beta 1: bundles local Blender 4.5.15 for procedural models/animation, a Blender MCP server, secure Figma frame-to-Luau import, a local PNG icon pack, and a dedicated Updates tab. These are initial pipelines, not professional automatic text-to-3D or R15 retargeting.
-            This is an unsigned prerelease. Install only if you trust the project.
+            Anchr v0.3.0 beta 1: adds optional safe-mode community Blender MCP scene editing, Anchr-authenticated richer Figma layout context, and browseable Roblox visual references. The bundled procedural Blender and icons remain a legacy fallback. Live Blender requires a separate user-approved addon/uvx setup. Visual references are linked for inspiration and are not licensed for copying.
+            This is an unsigned prerelease. Install only if you trust the project. The optional Blender MCP addon allows local Python execution; safe mode does not fully sandbox it. Check permissions and backups.
             Live Roblox Studio imports, Figma user access, and animated rig retargeting still require hands-on testing.
           files: |
             release/*.exe

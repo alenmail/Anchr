@@ -316,9 +316,11 @@ function prepareOpenCode(
         const saved = JSON.parse(await readFile(options.userConfigPath,"utf8")) as {
           blenderLiveEnabled?:boolean;blenderLiveUvxPath?:string;
         };
-        return {enabled:saved.blenderLiveEnabled===true,
-          executable:typeof saved.blenderLiveUvxPath==="string"&&saved.blenderLiveUvxPath.length<512
-            ?saved.blenderLiveUvxPath.trim():""};
+        const proposed=typeof saved.blenderLiveUvxPath==="string"&&saved.blenderLiveUvxPath.length<512
+          ?saved.blenderLiveUvxPath.trim():"";
+        // Never run an arbitrary configured program as a side-effect of boot.
+        const executable=proposed&&/(^|[\\/])uvx(?:\\.exe)?$/i.test(proposed)?proposed:"";
+        return {enabled:saved.blenderLiveEnabled===true,executable};
       } catch { return {enabled:false,executable:""}; }
     });
     const figmaBridge = yield* Effect.promise(() => getFigmaBridge());

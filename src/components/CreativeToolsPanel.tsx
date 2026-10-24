@@ -23,6 +23,12 @@ export default function CreativeToolsPanel(){
   const [frameId,setFrameId]=useState("");
   const [figmaResult,setFigmaResult]=useState<{code:string;file:string;convertedNodes:number;unconvertedVisuals:string[]}|null>(null);
   const [figmaBusy,setFigmaBusy]=useState(false);
+  const [liveEnabled,setLiveEnabled]=useState(false);
+  const [uvxPath,setUvxPath]=useState("");
+  const [savingLive,setSavingLive]=useState(false);
+  const [referenceQuery,setReferenceQuery]=useState("horror inventory ui");
+  const [references,setReferences]=useState<Array<{title:string;url:string;imageUrl?:string;description?:string}>>([]);
+  const [referenceBusy,setReferenceBusy]=useState(false);
   const [error,setError]=useState("");
   const [message,setMessage]=useState("");
 
@@ -31,7 +37,26 @@ export default function CreativeToolsPanel(){
       .then(([blender,connected])=>{setRuntime(blender);setFigmaActive(connected);})
       .catch(cause=>setError(cause instanceof Error?cause.message:"Unable to initialize creative tools"));
   },[]);
+  useEffect(()=>{void desktop.loadConfig().then(cfg=>{
+    setLiveEnabled(cfg.blenderLiveEnabled);
+    setUvxPath(cfg.blenderLiveUvxPath);
+  }).catch(()=>undefined);},[]);
   const clear=()=>{setError("");setMessage("");};
+  async function saveBlenderMode(){
+    clear();setSavingLive(true);
+    try{
+      await desktop.patchConfig({blenderLiveEnabled:liveEnabled,blenderLiveUvxPath:uvxPath.trim()});
+      setMessage("Blender MCP preference saved. Restart Anchr to reload its MCP servers.");
+    }catch(e){setError(e instanceof Error?e.message:"Unable to save Blender settings");}
+    finally{setSavingLive(false);}
+  }
+  async function searchReferences(){
+    clear();setReferenceBusy(true);
+    try{
+      setReferences(await desktop.findVisualReferences(referenceQuery));
+    }catch(e){setError(e instanceof Error?e.message:"Unable to search references");}
+    finally{setReferenceBusy(false);}
+  }
 
   async function makeModel(){
     clear();setModelBusy(true);
@@ -74,11 +99,34 @@ export default function CreativeToolsPanel(){
     <header className="space-y-1"><div className="flex items-center gap-2"><Sparkles size={17} className="text-sky-300"/><h3 className="text-lg font-semibold tracking-tight">Creative Tools</h3></div>
       <p className="text-[11px] leading-5 text-muted-foreground">Local modeling, basic animation, Figma UI import and bundled icons. No paid add-ons required.</p>
     </header>
+    <section className="space-y-3 rounded-xl border border-sky-400/20 bg-sky-400/[.04] p-4">
+      <h4 className="flex items-center gap-2 text-[13px] font-semibold"><Box size={16}/> Blender scene editing (community MCP)</h4>
+      <p className="text-[11px] leading-5 text-muted-foreground">
+        Make iterative 3D scenes from Anchr chat using the community mcp-for-blender add-on.
+        Requires Blender running with the add-on enabled, plus uvx installed. This is not a trained text-to-3D model.
+      </p>
+      <label className="flex items-start gap-2 text-[11px] leading-5"><input type="checkbox" className="mt-1" checked={liveEnabled}
+        onChange={e=>setLiveEnabled(e.target.checked)}/>
+        Enable live Blender MCP when Anchr starts (uses community code execution inside Blender)
+      </label>
+      <label className="block text-[11px]">uvx executable path (optional; leave blank to use PATH)
+        <input className={inp} value={uvxPath} onChange={e=>setUvxPath(e.target.value)} maxLength={400}
+          placeholder="e.g. C:\\Users\\You\\.local\\bin\\uvx.exe"/>
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className={btn} disabled={savingLive} onClick={()=>void saveBlenderMode()}>Save Blender connection</button>
+        <button type="button" className={btn} onClick={()=>void desktop.openUrl("https://github.com/ahujasid/mcp-for-blender#manual-setup-in-case-the-automatic-setup-doesnt-work")}>
+          <ExternalLink size={13}/> Installation guide</button>
+      </div>
+      <p className="text-[10px] leading-5 text-amber-200/80">Safety: Anchr enables BLENDER_MCP_SAFE_MODE=1, but the add-on's
+        localhost socket has no authentication and safe mode is not a full sandbox. Use only with trusted projects; keep port 9876 local.
+        Downloaded models and external assets may require accounts, permissions or payment. Restart Anchr after changing settings.</p>
+    </section>
     <section className="space-y-3 rounded-xl border border-white/10 bg-white/[.025] p-4">
-      <div className="flex items-center justify-between gap-2"><h4 className="flex items-center gap-2 text-[13px] font-semibold"><Box size={16}/> Blender modeling</h4>
+      <div className="flex items-center justify-between gap-2"><h4 className="flex items-center gap-2 text-[13px] font-semibold"><Box size={16}/> Basic procedural generator (legacy)</h4>
         <span className={"text-[10px] "+(runtime?.available?"text-emerald-400":"text-amber-300")}>{runtime?.available?"Local runtime ready":"Runtime not found"}</span>
       </div>
-      <p className="text-[11px] leading-5 text-muted-foreground">Generates a textured procedural GLB, editable .blend file and preview. For more complex models, ask Anchr to call its Blender MCP tools.</p>
+      <p className="text-[11px] leading-5 text-muted-foreground">Creates rough template geometry, a .blend file, and a GLB preview. Not suitable for detailed creatures or professional animation. Use live Blender MCP for iterative scene work.</p>
       <label className="block text-[11px]">Model name<input className={inp} value={modelName} onChange={e=>setModelName(e.target.value)} maxLength={70}/></label>
       <label className="block text-[11px]">Appearance and proportions
         <textarea className={inp+" min-h-[64px] resize-y py-2"} maxLength={500} value={concept} onChange={e=>setConcept(e.target.value)} placeholder="Describe silhouette, proportions, color and defining features"/>
@@ -128,6 +176,26 @@ export default function CreativeToolsPanel(){
             <button type="button" className={btn} disabled={figmaBusy} onClick={()=>void applyFigma()}>Apply to connected Studio</button></div>
         </div>}
       </>}
+    </section>
+    <section className="space-y-3 rounded-xl border border-white/10 bg-white/[.025] p-4">
+      <h4 className="flex items-center gap-2 text-[13px] font-semibold"><Image size={16}/> Roblox visual reference library</h4>
+      <p className="text-[11px] leading-5 text-muted-foreground">
+        Browse references from izzyfrm/roblox-ai and openly licensed image services. References guide original design only;
+        do not copy or redistribute third-party game art without permission.
+      </p>
+      <label className="block text-[11px]">Search styles, menus or effects
+        <input className={inp} value={referenceQuery} maxLength={200} onChange={e=>setReferenceQuery(e.target.value)}
+          onKeyDown={e=>{if(e.key==="Enter")void searchReferences();}}/>
+      </label>
+      <button type="button" className={btn} disabled={referenceBusy||!referenceQuery.trim()}
+        onClick={()=>void searchReferences()}>{referenceBusy?"Searching…":"Find references"}</button>
+      {references.length>0&&<div className="grid grid-cols-2 gap-2">
+        {references.map(ref=><button key={ref.url} type="button" onClick={()=>void desktop.openUrl(ref.url)}
+          className="overflow-hidden rounded-lg border border-white/10 bg-black/10 text-left">
+          {ref.imageUrl&&<img src={ref.imageUrl} alt={ref.title} loading="lazy" className="h-24 w-full object-cover"/>}
+          <span className="block truncate p-2 text-[10px]">{ref.title}</span>
+        </button>)}
+      </div>}
     </section>
     <section className="space-y-2 rounded-xl border border-white/10 bg-white/[.025] p-4">
       <h4 className="flex items-center gap-2 text-[13px] font-semibold"><Image size={16}/> Built-in icon pack</h4>

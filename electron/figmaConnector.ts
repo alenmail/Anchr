@@ -1,6 +1,8 @@
 import { app, safeStorage } from "electron";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createServer } from "node:http";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 
 // Figma personal token is encrypted at rest with the operating system's key store.
 const path=()=>join(app.getPath("userData"),"figma-token.dat");
@@ -87,4 +89,49 @@ export async function generateFigmaUi(raw:string,nodeId:string){
   const file=join(dir,"figma-"+nodeId.replace(":","-")+"-"+Date.now()+".luau");
   await writeFile(file,result.code,"utf8");
   return {...result,file};
+}
+
+/** Authenticated loopback bridge for the bundled Anchr Figma MCP subprocess.
+ * Figma credentials remain in OS secure storage, not in OpenCode's JSON config.
+ */
+let bridgePromise: Promise<{url:string;secret:string}>|null = null;
+export function getFigmaBridge():Promise<{url:string;secret:string}> {
+  if(bridgePromise)return bridgePromise;
+  bridgePromise=new Promise((resolve,reject)=>{
+    const secret=randomBytes(32).toString("hex");
+    const server=createServer(async(request,response)=>{
+      if(request.method!=="POST"||request.url!=="/figma"){
+        response.writeHead(404).end();return;
+      }
+      const auth=(request.headers.authorization||"").replace(/^Bearer /,"");
+      const authorized=auth.length===secret.length &&
+        timingSafeEqual(Buffer.from(auth),Buffer.from(secret));
+      if(!authorized){response.writeHead(401).end();return;}
+      let body="";for await(const data of request){
+        body+=data.toString("utf8");if(body.length>8192){response.writeHead(413).end();return;}
+      }
+      response.setHeader("Content-Type","application/json");
+      response.setHeader("Cache-Control","no-store");
+      try{
+        const input=JSON.parse(body) as {method?:string;arguments?:{url?:string;nodeId?:string}};
+        const args=input.arguments||{};
+        let result:unknown;
+        if(input.method==="frames"&&typeof args.url==="string")result=await listFigmaFrames(args.url);
+        else if(input.method==="generate"&&typeof args.url==="string"&&typeof args.nodeId==="string")
+          result=await generateFigmaUi(args.url,args.nodeId);
+        else throw Error("Invalid Figma request");
+        response.writeHead(200).end(JSON.stringify({result}));
+      }catch(e){
+        response.writeHead(400).end(JSON.stringify({error:e instanceof Error?e.message:"Figma bridge failed"}));
+      }
+    });
+    server.on("error",reject);
+    server.listen(0,"127.0.0.1",()=>{
+      const address=server.address();
+      if(!address||typeof address==="string"){reject(Error("Figma bridge listen failed"));return;}
+      server.unref();
+      resolve({url:"http://127.0.0.1:"+address.port+"/figma",secret});
+    });
+  });
+  return bridgePromise;
 }

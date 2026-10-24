@@ -52,7 +52,7 @@ export function anchrCompatibleProvider(endpoint: NonNullable<AppConfig["customE
   };
 }
 
-export function createOpenCodeConfig(broker: { url: string }, endpoint: AppConfig["customEndpoint"] = null, figmaBridge: { url: string; secret: string } | null = null) {
+export function createOpenCodeConfig(broker: { url: string }, endpoint: AppConfig["customEndpoint"] = null, figmaBridge: { url: string; secret: string } | null = null, blenderLive: { enabled: boolean; executable?: string } = {enabled:false}) {
   return {
     // Keep OpenCode's standard automatic context compaction enabled for long sessions.
     compaction: {
@@ -71,7 +71,16 @@ export function createOpenCodeConfig(broker: { url: string }, endpoint: AppConfi
         timeout: 10000,
         enabled: true,
       }} : {}),
-      "anchr-blender": {
+      "anchr-blender": blenderLive.enabled ? {
+        type: "local" as const,
+        // Optional community Blender MCP. Never auto-installs or runs unless
+        // the user explicitly opts in under Creative Tools.
+        command: [blenderLive.executable || "uvx", "--python", "3.11", "--from",
+          "mcp-for-blender==2.2.2", "mcp-for-blender"],
+        environment: { BLENDER_MCP_SAFE_MODE: "1", BLENDER_HOST: "127.0.0.1", BLENDER_PORT: "9876" },
+        timeout: 30000,
+        enabled: true,
+      } : {
         type: "local",
         command: [
           process.execPath,
@@ -102,12 +111,12 @@ export function createOpenCodeConfig(broker: { url: string }, endpoint: AppConfi
           "Use Anchr Studio tools (the Chrrxs MCP server). Start by calling get_connected_instances and use instance_id to scope calls. " +
           "Inspect with get_project_structure, search_objects, and get_instance_properties before editing. Edit scripts with edit_script_lines or set_script_source. " +
           "Playtest and read runtime logs when applicable. The built-in Roblox Studio MCP server is not used. " +
-          "When a user provides a Figma file and asks to implement a UI, use anchr-figma MCP to inspect and generate Luau, then ask for review before inserting it. Complex icons and vectors require uploaded Roblox asset IDs. " +
+          "When a user provides a Figma file and asks to implement a UI, use figma_get_design_context to inspect its read-only layout and visual hierarchy, then generate Luau and ask for review before inserting it. Complex icons and vectors require uploaded Roblox asset IDs. " +
           "When available, inspect Roblox Creator Store with search_assets and preview_asset for quality, licensed, safe mesh/rig candidates; request approval before insert_asset. " +
-          "For bespoke 3D meshes or animations use anchr-blender MCP instead of crude Roblox primitives. Translate the request into a 500-character concept argument containing the silhouette, key proportions, colors and recognizable details; ask for revision and preview feedback. " +
-          "Use blender_status first; generate_model creates a GLB, .blend file and preview for user review. " +
+          "For bespoke 3D mesh edits and animation prefer the connected Blender MCP tools when available, inspect the actual scene and viewport, then iteratively create and verify objects. Only operate on explicitly approved user scenes. " +
+          "If Blender is in legacy procedural mode, use blender_status and generate_model only for basic placeholders; warn that this cannot produce detailed custom models. " +
           "Select an archetype and ask for silhouette, materials, rig and style if needed. Do not promise commercial text-to-3D fidelity. " +
-          "Animation tools create basic keyframe pivots and need Roblox retargeting. " +
+          "Blender scene editing can execute Python. Respect safe mode, show planned changes, and request approval for external asset downloads or destructive operations. Animation still needs Roblox retargeting. " +
           "Do not automatically import unreviewed GLBs into Roblox; provide Studio File > Import instructions. " +
           "Do not call list_roblox_studios, search_game_tree or set_active_studio. Confirm changes with read-only inspection and warn before destructive edits.",
       },
